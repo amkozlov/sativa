@@ -5,8 +5,7 @@ SATIVA_HOME=..
 # Versions of RAxML to build
 VERSIONS:=SSE3.PTHREADS PTHREADS 
 
-# AVX needs gcc >= 4.6.0 
-ifeq ("$(USE_GCC_46_OR_HIGHER)", "yes")
+ifeq ("$(USE_AVX)", "yes")
   VERSIONS+=AVX.PTHREADS
 endif
 
@@ -24,15 +23,16 @@ RAXML_BIN=$(SATIVA_HOME)/raxml/raxmlHPC8-
 
 all: install
 
-clean:
+clean_builddir:
 	rm -rf builddir.*
-	rm -f $(RAXML_BIN)*
 	rm -f unpack.*.stamp
+
+clean: clean_builddir
+	rm -f $(RAXML_BIN)*
 
 ## internal targets
 
-install: build
-	clean
+install: build clean_builddir
 
 build:  $(VERSIONS:%=$(RAXML_BIN)%)
 
@@ -57,4 +57,4 @@ unpack.%.stamp: $(TARFILE)
 # prevent make from deleting intermediate targets:
 .SECONDARY:
 
-.PHONY: clean all install build
+.PHONY: clean all install build clean_builddir
