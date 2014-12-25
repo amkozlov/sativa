@@ -1,7 +1,7 @@
 SATIVA
 ======
 
-SATIVA (*S*emi-*A*utomatic *T*axonomy *I*mprovement and *V*alidation *A*lgorithm) is a pipeline
+SATIVA (**S**emi-**A**utomatic **T**axonomy **I**mprovement and **V**alidation **A**lgorithm) is a pipeline
 that uses Evolutionary Placement Algorithm (EPA) to identify taxonomically mislabeled sequences
 and suggest corrections 
 
@@ -36,8 +36,8 @@ GUI
 SATIVA is integrated with the most recent (unstable) version of ARB software.
 
 Development builds: ftp://ftp.arb-silva.de/ARB/builds/
-Source: http://svn.mikro.biologie.tu-muenchen.de/readonly/trunk/
 
+Source: http://svn.mikro.biologie.tu-muenchen.de/readonly/trunk/
 
 
 Citation
