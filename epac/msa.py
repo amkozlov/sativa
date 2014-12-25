@@ -4,8 +4,8 @@ import os
 import json
 import operator
 import time
-from epac.ete2 import Tree, SeqGroup
-from epac.config import EpacConfig
+from ete2 import Tree, SeqGroup
+from config import EpacConfig
 from subprocess import call
 
 class hmmer:

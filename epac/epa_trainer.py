@@ -5,15 +5,15 @@ import os
 import shutil
 import datetime
 import time
-from epac.ete2 import Tree, SeqGroup
-from epac.argparse import ArgumentParser,RawTextHelpFormatter
-from epac.config import EpacConfig,EpacTrainerConfig
-from epac.raxml_util import RaxmlWrapper, FileUtils
-from epac.taxonomy_util import Taxonomy, GGTaxonomyFile, TaxTreeBuilder
-from epac.json_util import RefJsonBuilder
-from epac.erlang import tree_param 
-from epac.msa import hmmer
-from epac.classify_util import TaxTreeHelper
+from ete2 import Tree, SeqGroup
+from argparse import ArgumentParser,RawTextHelpFormatter
+from config import EpacConfig,EpacTrainerConfig
+from raxml_util import RaxmlWrapper, FileUtils
+from taxonomy_util import Taxonomy, GGTaxonomyFile, TaxTreeBuilder
+from json_util import RefJsonBuilder
+from erlang import tree_param 
+from msa import hmmer
+from classify_util import TaxTreeHelper
 
 class RefTreeBuilder:
     def __init__(self, config): 

@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 import math
-from epac.ete2 import Tree
+from ete2 import Tree
 
 class erlang:
     def __init__(self):

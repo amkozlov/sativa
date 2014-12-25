@@ -1,22 +1,17 @@
 #! /usr/bin/env python
-try:
-    import sys
-    import os
-    import time
-    import glob
-    from operator import itemgetter
-    from epac.ete2 import Tree, SeqGroup
-    from epac.argparse import ArgumentParser
-    from epac.config import EpacConfig
-    from epac.raxml_util import RaxmlWrapper, FileUtils
-    from epac.json_util import RefJsonParser, RefJsonChecker, EpaJsonParser
-    from epac.taxonomy_util import Taxonomy,GGTaxonomyFile
-    from epac.classify_util import TaxTreeHelper,TaxClassifyHelper
-except ImportError, e:
-    print("Some packages are missing, please re-downloand EPA-classifier")
-    print e
-    sys.exit()
 
+import sys
+import os
+import time
+import glob
+from operator import itemgetter
+from ete2 import Tree, SeqGroup
+from argparse import ArgumentParser
+from config import EpacConfig
+from raxml_util import RaxmlWrapper, FileUtils
+from json_util import RefJsonParser, RefJsonChecker, EpaJsonParser
+from taxonomy_util import Taxonomy,GGTaxonomyFile
+from classify_util import TaxTreeHelper,TaxClassifyHelper
 
 class LeaveOneTest:
     def __init__(self, config, args):
@@ -62,8 +57,6 @@ class LeaveOneTest:
         
         self.classify_helper = TaxClassifyHelper(self.cfg, self.bid_taxonomy_map, self.brlen_pv, self.rate, self.node_height)
         
-        print "TreeSize: %d, use_heur: %s\n" % (self.reftree_size, str(self.cfg.epa_use_heuristic))        
-
         self.TAXONOMY_RANKS_COUNT = 10
         self.mislabels = []
         self.mislabels_cnt = [0] * self.TAXONOMY_RANKS_COUNT
@@ -377,6 +370,9 @@ class LeaveOneTest:
                 mis_rec['rank_conf'] = rank_conf
             seq_count += 1
 
+        if not self.cfg.debug:
+            self.raxml.cleanup(job_name)
+
         return seq_count    
         
     def run_final_epa_test(self):
@@ -462,7 +458,7 @@ class LeaveOneTest:
 
         if len(self.mislabels) > 0:
             print "Leave-one-out test identified %d suspicious sequences; running final EPA test to check them...\n" % len(self.mislabels)
-            self.write_mislabels(final=False)
+#            self.write_mislabels(final=False)
             self.run_final_epa_test()
 
         self.sort_mislabels()
@@ -586,5 +582,7 @@ if __name__ == "__main__":
     if not config.debug:
         t.cleanup()
 
+    print "\nResults were saved to: %s.mis\n" % os.path.abspath(t.output_fname)
+
     elapsed_time = time.time() - start_time
-    print "\nDone! (%.0f s)\n" % elapsed_time
+#    print "Done! (%.0f s)\n" % elapsed_time

@@ -1,6 +1,6 @@
 #! /usr/bin/env python
-from epac.taxonomy_util import Taxonomy
-from epac.erlang import erlang
+from taxonomy_util import Taxonomy
+from erlang import erlang
 import math
 
 class TaxTreeHelper:

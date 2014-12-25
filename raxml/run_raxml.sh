@@ -27,7 +27,8 @@ cpu_has_feature() {
 ###### main #####
 
 # select RAxML binary
-RAXML_STEM=raxmlHPC8
+BASEDIR=$(dirname $0)
+RAXML_STEM="${BASEDIR}/raxmlHPC8"
 if cpu_has_feature avx && can_run ${RAXML_STEM}-AVX.PTHREADS; then
     RAXML=${RAXML_STEM}-AVX.PTHREADS
 elif cpu_has_feature sse3 && can_run ${RAXML_STEM}-SSE3.PTHREADS; then
@@ -36,7 +37,7 @@ elif can_run ${RAXML_STEM}-PTHREADS; then
     RAXML=${RAXML_STEM}-PTHREADS
 else
     report_error Could not find working RAxML binary. 
+    exit -1
 fi
 
 $RAXML $@
-

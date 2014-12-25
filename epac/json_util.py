@@ -4,7 +4,7 @@ import os
 import json
 import operator
 import base64
-from epac.ete2 import Tree, SeqGroup
+from ete2 import Tree, SeqGroup
 from subprocess import call
 
 class EpaJsonParser:
