@@ -11,10 +11,12 @@ endif
 
 TARFILE=$(wildcard sativa-RAxML-8.*.*gz)
 
-ifeq (($DARWIN),1)
-  MAKE_SUFFIX=mac	
+ifeq ("$(DARWIN)","1")
+  MAKE_SUFFIX=mac
+  SED=sed -i ''
 else
   MAKE_SUFFIX=gcc
+  SED=sed -i
 endif
 
 RAXML_BIN=$(SATIVA_HOME)/raxml/raxmlHPC8-
@@ -48,7 +50,7 @@ unpack.%.stamp: $(TARFILE)
 	rm -rf $$DIR &&\
 	mkdir $$DIR &&\
 	tar -C $$DIR --strip-components=1 -xzf $(TARFILE) &&\
-	sed -i 's/-march=native//' $$DIR/Makefile*)
+	$(SED) 's/-march=native//' $$DIR/Makefile*)
 	touch $@ -r $(TARFILE)	
 
 %.stamp:
