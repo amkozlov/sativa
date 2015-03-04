@@ -25,4 +25,5 @@ fi
 cd raxml
 make
 cd ..
-echo "\nDone!"
+mkdir tmp
+echo "Done!"
