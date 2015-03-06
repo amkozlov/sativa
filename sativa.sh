@@ -89,7 +89,7 @@ else
   DBG=""
 fi
 
-$EPACDIR/epa_trainer.py -t $INFILE_TAX -s $INFILE_ALI -r $JSON -c $CFG -v -C -no-hmmer -tmpdir $TMPDIR -m $MODE -T $THREADS $DBG
+$EPACDIR/epa_trainer.py -t $INFILE_TAX -s $INFILE_ALI -r $JSON -c $CFG -C -no-hmmer -tmpdir $TMPDIR -m $MODE -T $THREADS $DBG
 
 $EPACDIR/find_mislabels.py -r $JSON -c $CFG -o $OUTDIR -n $NAME -tmpdir $TMPDIR -T $THREADS $DBG
 

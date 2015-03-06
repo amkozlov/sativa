@@ -1,4 +1,5 @@
 # Wrapper to build RAxML versions
+# Based on ARB RAxML8 Makefile, by Elmar Pruesse, http://www.arb-home.de/
 
 SATIVA_HOME=..
 

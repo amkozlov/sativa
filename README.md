@@ -8,12 +8,25 @@ and suggest corrections
 Installation
 ------------
 
-1. Make sure Python 2.6+ is installed on your system (Python 3 is not supported!)
+Currently, only Linux and OSX (Mac) systems are supported. 
 
-2. Build RAxML from source by running
+1. Make sure Python 2.6+ (Python 3 is not supported!)
+
+2  Make sure you have a recent C compiler (we recommend GCC 4.6+ / clang 3.3+ for AVX support).
+   If you have an up-to-date OS distribution (Ubuntu 12.04+, OSX 10.8+), there is nothing to worry about.
+   In a cluster environment, you might need to select an appropriate compiler version, e.g.:
+
+   $ module load gcc/4.7.0
+
+   (please refer to your cluster manual for details)
+
+3. Run the installation script
 
   $ ./install.sh
 
+  If you are getting compilation errors, try to disable AVX:
+
+  $ ./install.sh --no-avx
 
 Basic usage
 -----------
@@ -38,6 +51,14 @@ SATIVA is integrated with the most recent (unstable) version of ARB software.
 Development builds: ftp://ftp.arb-silva.de/ARB/builds/
 
 Source: http://svn.mikro.biologie.tu-muenchen.de/readonly/trunk/
+
+
+Support
+-------
+
+For the time being, please direct your questions to the RAxML google group:
+
+https://groups.google.com/forum/?hl=en#!forum/raxml
 
 
 Citation
