@@ -10,15 +10,15 @@ Installation
 
 Currently, only Linux and OSX (Mac) systems are supported. 
 
-1. Make sure Python 2.6+ (Python 3 is not supported!)
+1. Make sure Python 2.6+ is installed (Python 3 is not supported!)
 
 2. Make sure you have a recent C compiler (we recommend GCC 4.6+ / clang 3.3+ for AVX support).
-   If you have an up-to-date OS distribution (Ubuntu 12.04+, OSX 10.8+), there is nothing to worry about.
+   If you have an up-to-date OS distribution (Ubuntu 12.04+, OSX 10.8+ etc.), there is nothing to worry about.
    In a cluster environment, you might need to select an appropriate compiler version, e.g.:
 
    $ module load gcc/4.7.0
 
-   (please refer to your cluster manual for details)
+   (please refer to your cluster documentation for details)
 
 3. Run the installation script
 
