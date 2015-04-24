@@ -195,6 +195,7 @@ class EpacTrainerConfig(EpacConfig):
         self.wrong_rank_count  = args.wrong_rank_count
         self.compress_patterns = args.compress_patterns
         self.mfresolv_method = args.mfresolv_method
+        self.taxcode_name = args.taxcode_name
         
     def set_defaults(self):
         EpacConfig.set_defaults(self)

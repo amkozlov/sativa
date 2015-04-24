@@ -9,7 +9,7 @@ from ete2 import Tree, SeqGroup
 from argparse import ArgumentParser,RawTextHelpFormatter
 from config import EpacConfig,EpacTrainerConfig
 from raxml_util import RaxmlWrapper, FileUtils
-from taxonomy_util import Taxonomy, GGTaxonomyFile, TaxTreeBuilder
+from taxonomy_util import Taxonomy, TaxTreeBuilder
 from json_util import RefJsonBuilder
 from erlang import tree_param 
 from msa import hmmer
@@ -148,7 +148,7 @@ class RefTreeBuilder:
             tax_fname = self.cfg.tmp_fname("%NAME%_tax.txt")
             with open(tax_fname, "w") as fout:
                 for sid, ranks in self.taxonomy_map.iteritems():
-                    ranks_str = self.taxonomy.lineage_str(sid, True) 
+                    ranks_str = self.taxonomy.seq_lineage_str(sid) 
                     fout.write(sid + "\t" + ranks_str + "\n")   
 
     def save_rooting(self):
@@ -360,6 +360,7 @@ class RefTreeBuilder:
         jw.set_ratehet_model(self.cfg.raxml_model)
         jw.set_tax_tree(self.reftree_multif)
         jw.set_pattern_compression(self.cfg.compress_patterns)
+        jw.set_taxcode(self.cfg.taxcode_name)
 
         mdata = { "ref_tree_size": self.reftree_size, 
                   "ref_alignment_width": self.refalign_width,
@@ -405,7 +406,7 @@ class RefTreeBuilder:
     def build_ref_tree(self):
         start_time = time.time()
         print "\n> Loading taxonomy from file: %s ...\n" % (self.cfg.taxonomy_fname)
-        self.taxonomy = GGTaxonomyFile(self.cfg.taxonomy_fname, EpacConfig.REF_SEQ_PREFIX)
+        self.taxonomy = Taxonomy(self.cfg.taxonomy_fname, EpacConfig.REF_SEQ_PREFIX)
         print "\n=> Building a multifurcating tree from taxonomy with %d seqs ...\n" % self.taxonomy.seq_count()
         self.validate_taxonomy()
         self.build_multif_tree()
@@ -437,12 +438,12 @@ def parse_args():
     parser = ArgumentParser(description="Build a reference tree for EPA taxonomic placement.",
     epilog="Example: ./epa_trainer.py -t example/training_tax.txt -s example/training_seq.fa -r example/ref.json",
     formatter_class=RawTextHelpFormatter)
-    parser.add_argument("-t", dest="taxonomy_fname",
+    parser.add_argument("-t", dest="taxonomy_fname", required=True,
             help="""Reference taxonomy file.""")
-    parser.add_argument("-s", dest="align_fname",
+    parser.add_argument("-s", dest="align_fname", required=True,
             help="""Reference alignment file. Sequences must be aligned, their IDs must correspond to those
 in taxonomy file.""")
-    parser.add_argument("-r", dest="ref_fname",
+    parser.add_argument("-r", dest="ref_fname", required=True,
             help="""Reference output file. It will contain reference alignment, phylogenetic tree and other
 information needed for taxonomic placement of query sequences.""")
     parser.add_argument("-T", dest="num_threads", type=int, default=None,
@@ -458,6 +459,8 @@ information needed for taxonomic placement of query sequences.""")
             thorough    use stardard constrainted RAxML tree search (default)
             fast        use RF distance as search convergence criterion (RAxML -D option)
             ultrafast   optimize model+branch lengths only (RAxML -f e option)""")
+    parser.add_argument("-x", dest="taxcode_name", choices=["bac", "bot", "zoo", "vir"], type = str.lower,
+            help="""Taxonomic code: BAC(teriological), BOT(anical), ZOO(logical), VIR(ological)""")
     parser.add_argument("-v", dest="verbose", action="store_true",
             help="""Print additional info messages to the console.""")
     parser.add_argument("-debug", dest="debug", action="store_true",

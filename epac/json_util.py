@@ -4,8 +4,9 @@ import os
 import json
 import operator
 import base64
-from ete2 import Tree, SeqGroup
 from subprocess import call
+from ete2 import Tree, SeqGroup
+from taxonomy_util import TaxCode
 
 class EpaJsonParser:
     """This class parses the RAxML-EPA json output file"""
@@ -135,6 +136,15 @@ class RefJsonChecker:
             else:
                 return False
         
+        if nver >= 1.3:
+            #taxcode
+            if "taxcode" in self.jdata:
+                taxcode_str = self.jdata["taxcode"]
+                if not isinstance(taxcode_str, unicode):
+                    return False
+                elif taxcode_str.lower() not in TaxCode.TAX_CODE_MAP:
+                    return False
+
         return True
 
 class RefJsonParser:
@@ -239,6 +249,9 @@ class RefJsonParser:
         else:
             return False
 
+    def get_taxcode(self):
+        return self.jdata["taxcode"]
+
     def get_metadata(self):
         return self.jdata["metadata"]
         
@@ -255,7 +268,7 @@ class RefJsonBuilder:
             self.jdata = old_json.jdata
         else:
             self.jdata = {}
-            self.jdata["version"] = "1.2"
+            self.jdata["version"] = "1.3"
 #            self.jdata["author"] = "Jiajie Zhang"
         
     def set_taxonomy(self, bid_ranks_map):
@@ -298,6 +311,9 @@ class RefJsonBuilder:
 
     def set_pattern_compression(self, value):
         self.jdata["pattern_compression"] = value
+
+    def set_taxcode(self, value):
+        self.jdata["taxcode"] = value
 
     def set_metadata(self, metadata):    
         self.jdata["metadata"] = metadata

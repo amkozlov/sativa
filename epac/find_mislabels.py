@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 from config import EpacConfig
 from raxml_util import RaxmlWrapper, FileUtils
 from json_util import RefJsonParser, RefJsonChecker, EpaJsonParser
-from taxonomy_util import Taxonomy,GGTaxonomyFile
+from taxonomy_util import TaxCode, Taxonomy
 from classify_util import TaxTreeHelper,TaxClassifyHelper
 
 class LeaveOneTest:
@@ -32,7 +32,7 @@ class LeaveOneTest:
         self.reftree_fname = self.cfg.tmp_fname("ref_%NAME%.tre")
 
         try:
-            self.refjson = RefJsonParser(config.refjson_fname, ver="1.2")
+            self.refjson = RefJsonParser(config.refjson_fname, ver="1.3")
         except ValueError:
             print("Invalid json file format!")
             sys.exit()
@@ -57,11 +57,13 @@ class LeaveOneTest:
         
         self.classify_helper = TaxClassifyHelper(self.cfg, self.bid_taxonomy_map, self.brlen_pv, self.rate, self.node_height)
         
-        self.TAXONOMY_RANKS_COUNT = 10
+        tax_code_name = self.refjson.get_taxcode()
+        self.tax_code = TaxCode(tax_code_name)
+        
         self.mislabels = []
-        self.mislabels_cnt = [0] * self.TAXONOMY_RANKS_COUNT
+        self.mislabels_cnt = [0] * TaxCode.UNI_TAX_LEVELS
         self.rank_mislabels = []
-        self.rank_mislabels_cnt = [0] * self.TAXONOMY_RANKS_COUNT
+        self.rank_mislabels_cnt = [0] * TaxCode.UNI_TAX_LEVELS
         self.misrank_conf_map = {}
 
     def cleanup(self):
@@ -74,59 +76,6 @@ class LeaveOneTest:
         else:
             print "ERROR: no placements! something is definitely wrong!"
 
-    def rank_level_name(self, uni_rank_level):
-        return { 0:  ("?__", "Unknown"),
-                 1: ("k__", "Kingdom"),
-                 2: ("p__", "Phylum"),
-                 3: ("c__", "Class"),
-                 4: ("d__", "Subclass"),
-                 5: ("o__", "Order"),
-                 6: ("n__", "Suborder"),
-                 7: ("f__", "Family"),
-                 8: ("g__", "Genus"),
-                 9: ("s__", "Species")
-                }[uni_rank_level]
-                
-    def guess_rank_level(self, ranks, rank_level):
-        rank_name = ranks[rank_level]
-        
-        real_level = 0
-        
-        # check common prefixes and suffixes
-        if rank_name.startswith("k__") or rank_name.lower() in ["bacteria", "archaea", "eukaryota"]:
-            real_level = 1
-        elif rank_name.startswith("p__"):
-            real_level = 2
-        elif rank_name.startswith("c__"):
-            real_level = 3
-        elif rank_name.endswith("dae"):
-            real_level = 4
-        elif rank_name.startswith("o__") or rank_name.endswith("ales"):
-            real_level = 5
-        elif rank_name.endswith("neae"):
-            real_level = 6
-        elif rank_name.startswith("f__") or rank_name.endswith("ceae"):
-            real_level = 7
-        elif rank_name.startswith("g__"):
-            real_level = 8
-        elif rank_name.startswith("s__"):
-            real_level = 9
-            
-        if real_level == 0:
-            if rank_level == 0:    # kingdom
-                real_level = 1
-            else:
-                parent_level = self.guess_rank_level(ranks, rank_level-1)
-                real_level = parent_level + 1
-                if len(ranks) < 8 and (real_level in [4,6]):
-                    real_level += 1
-                             
-        return real_level
-         
-    def guess_rank_level_name(self, ranks, rank_level):
-        real_level = self.guess_rank_level(ranks, rank_level)
-        return self.rank_level_name(real_level)
-        
     def check_seq_tax_labels(self, seq_name, orig_ranks, ranks, lws):
         mislabel_lvl = -1
         min_len = min(len(orig_ranks),len(ranks))
@@ -136,12 +85,12 @@ class LeaveOneTest:
                 break
 
         if mislabel_lvl >= 0:
-            real_lvl = self.guess_rank_level(orig_ranks, mislabel_lvl)
+            real_lvl = self.tax_code.guess_rank_level(orig_ranks, mislabel_lvl)
             mis_rec = {}
             mis_rec['name'] = EpacConfig.strip_ref_prefix(seq_name)
             mis_rec['orig_level'] = mislabel_lvl
             mis_rec['real_level'] = real_lvl
-            mis_rec['level_name'] = self.rank_level_name(real_lvl)[1]
+            mis_rec['level_name'] = self.tax_code.rank_level_name(real_lvl)[0]
             mis_rec['inv_level'] = -1 * real_lvl  # just for sorting
             mis_rec['orig_ranks'] = orig_ranks
             mis_rec['ranks'] = ranks
@@ -162,12 +111,12 @@ class LeaveOneTest:
                 break
 
         if mislabel_lvl >= 0:
-            real_lvl = self.guess_rank_level(orig_ranks, mislabel_lvl)
+            real_lvl = self.tax_code.guess_rank_level(orig_ranks, mislabel_lvl)
             mis_rec = {}
             mis_rec['name'] = rank_name
             mis_rec['orig_level'] = mislabel_lvl
             mis_rec['real_level'] = real_lvl
-            mis_rec['level_name'] = self.rank_level_name(real_lvl)[1]
+            mis_rec['level_name'] = self.tax_code.rank_level_name(real_lvl)[0]
             mis_rec['inv_level'] = -1 * real_lvl  # just for sorting
             mis_rec['orig_ranks'] = orig_ranks
             mis_rec['ranks'] = ranks
@@ -255,11 +204,12 @@ class LeaveOneTest:
         with open("%s.stats" % self.output_fname, "w") as fo_stat:
             seq_sum = 0
             rank_sum = 0
-            for i in range(1, self.TAXONOMY_RANKS_COUNT):
-                rname = self.rank_level_name(i)[1].ljust(10)
-                if self.mislabels_cnt[i] > 0 or i not in [4,6]:
+            for i in range(1, len(self.mislabels_cnt)):
+                rname = self.tax_code.rank_level_name(i)[0].ljust(10)
+                if self.mislabels_cnt[i] > 0:
                     seq_sum += self.mislabels_cnt[i]
-                    output = "%s:\t%d" % (rname, seq_sum)
+#                    output = "%s:\t%d" % (rname, seq_sum)
+                    output = "%s:\t%d" % (rname, self.mislabels_cnt[i])
                     if self.ranktest:
                         rank_sum += self.rank_mislabels_cnt[i]
                         output += "\t%d" % rank_sum
@@ -458,7 +408,8 @@ class LeaveOneTest:
 
         if len(self.mislabels) > 0:
             print "Leave-one-out test identified %d suspicious sequences; running final EPA test to check them...\n" % len(self.mislabels)
-#            self.write_mislabels(final=False)
+            if self.cfg.debug:
+                self.write_mislabels(final=False)
             self.run_final_epa_test()
 
         self.sort_mislabels()

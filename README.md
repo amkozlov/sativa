@@ -32,9 +32,12 @@ Basic usage
 -----------
 
 SATIVA requires two files as an input: alignment (FASTA or PHYLIP) and a text file with taxonomic
-annotations (matched by sequence name):
+annotations (matched by sequence name). Furtermore, you must choose the nomenclature code via the
+-x option (e.g., BAC(teriological) for Bacteria and Archaea).
 
-  $ ./sativa.sh -s example/test.phy -t example/test.tax
+Sample command line:
+
+  $ ./sativa.sh -s example/test.phy -t example/test.tax -x BAC
 
 Output is a text file listing the identified mislabels, confidence scores and proposed corrections.
 
