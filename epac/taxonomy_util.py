@@ -2,6 +2,7 @@
 
 import sys
 import re
+from string import maketrans
 from ete2 import Tree
 #from epac.ete2 import Tree
 
@@ -235,6 +236,10 @@ class Taxonomy:
     def remove_seq(self, seqid):
         del self.seq_ranks_map[seqid]
 
+    def rename_seq(self, old_seqid, new_seqid):
+        self.seq_ranks_map[new_seqid] = self.seq_ranks_map[old_seqid]
+        del self.seq_ranks_map[old_seqid]
+
     def get_seq_ranks(self, seq_id):
         return self.seq_ranks_map[seq_id]
         
@@ -260,17 +265,36 @@ class Taxonomy:
 
         fin.close()
 
-    def normalize_rank_name(self, rank, rank_name):
-        invalid_chars = ['(', ')', ',', ';', ':']
-        for ch in invalid_chars:
-            rank_name = rank_name.replace(ch, "_")
-        return rank_name
-
     def normalize_rank_names(self):
+        invalid_chars = "[](),;:'"
+        sub_chars = "_" * len(invalid_chars)
+        trantab = maketrans(invalid_chars, sub_chars)
+        corr_ranks = {}
         for sid, ranks in self.seq_ranks_map.iteritems():
             for i in range(1, len(ranks)):
-                ranks[i] = self.normalize_rank_name(i, ranks[i])
+                if ranks[i] in corr_ranks:
+                    ranks[i] = corr_ranks[ranks[i]]
+                else:
+                    new_rank_name = ranks[i].translate(trantab);
+                    if new_rank_name != ranks[i]:
+                        corr_ranks[ranks[i]] = new_rank_name
+                        ranks[i] = new_rank_name
                 
+        return corr_ranks
+        
+    def normalize_seq_ids(self):
+        invalid_chars = "[](),;:' "
+        sub_chars = "_" * len(invalid_chars)
+        trantab = maketrans(invalid_chars, sub_chars)
+        corr_ids = {}
+        for old_sid in self.seq_ranks_map.iterkeys():
+            new_sid = old_sid.translate(trantab);
+            if new_sid != old_sid:
+                corr_ids[old_sid] = new_sid
+                self.rename_seq(old_sid, new_sid)
+                
+        return corr_ids
+
     def close_taxonomy_gaps(self):
         for sid, ranks in self.seq_ranks_map.iteritems():
             last_rank = None

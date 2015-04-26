@@ -32,6 +32,22 @@ class RefTreeBuilder:
         self.reftree_tax_fname = self.cfg.tmp_fname("%NAME%_tax.tre")
         self.brmap_fname = self.cfg.tmp_fname("%NAME%_map.txt")
 
+    def load_alignment(self):
+        in_file = self.cfg.align_fname
+        self.input_seqs = None
+        formats = ["fasta", "phylip", "iphylip", "phylip_relaxed", "iphylip_relaxed"]
+        for fmt in formats:
+            try:
+                self.input_seqs = SeqGroup(sequences=in_file, format = fmt)
+                break
+            except:
+                if self.cfg.debug:
+                    print("Guessing input format: not " + fmt)
+        if self.input_seqs == None:
+            print("Invalid input file format: %s" % in_file)
+            print("The supported input formats are fasta and phylip")
+            sys.exit()
+
     def validate_taxonomy(self):
         # make sure we don't taxonomy "irregularities" (more than 7 ranks or missing ranks in the middle)
         action = self.cfg.wrong_rank_count
@@ -83,7 +99,16 @@ class RefTreeBuilder:
                     sys.exit()
         
         # check for invalid characters in rank names
-        self.taxonomy.normalize_rank_names()
+        corr_ranks = self.taxonomy.normalize_rank_names()
+        for old_rank in sorted(corr_ranks.keys()):
+            print "WARNING: Following rank name contains illegal symbols and was renamed: %s --> %s" % (old_rank, corr_ranks[old_rank])
+        
+        print ""
+        
+        # check for invalid characters in sequence IDs
+        self.corr_seq_ids = self.taxonomy.normalize_seq_ids()
+        for old_sid in sorted(self.corr_seq_ids.keys()):
+            print "WARNING: Following sequence ID contains illegal symbols and was renamed: %s --> %s" % (old_sid, self.corr_seq_ids[old_sid])
         
         self.taxonomy.close_taxonomy_gaps()
 
@@ -115,27 +140,18 @@ class RefTreeBuilder:
         """This function transforms the input alignment in the following way:
            1. Filter out sequences which are not part of the reference tree
            2. Add sequence name prefix (r_)"""
-        in_file = self.cfg.align_fname
-        ref_seqs = None
-        formats = ["fasta", "phylip", "iphylip", "phylip_relaxed", "iphylip_relaxed"]
-        for fmt in formats:
-            try:
-                ref_seqs = SeqGroup(sequences=in_file, format = fmt)
-                break
-            except:
-                if self.cfg.debug:
-                    print("Guessing input format: not " + fmt)
-        if ref_seqs == None:
-            print("Invalid input file format: %s" % in_file)
-            print("The supported input formats are fasta and phylip")
-            sys.exit()
-
+        
         self.refalign_fname = self.cfg.tmp_fname("%NAME%_matrix.afa")
         with open(self.refalign_fname, "w") as fout:
-            for name, seq, comment, sid in ref_seqs.iter_entries():
+            for name, seq, comment, sid in self.input_seqs.iter_entries():
                 seq_name = EpacConfig.REF_SEQ_PREFIX + name
+                if seq_name in self.corr_seq_ids:
+                  seq_name = self.corr_seq_ids[seq_name]
                 if seq_name in self.reftree_ids:
                     fout.write(">" + seq_name + "\n" + seq + "\n")
+
+        # we do not need the original alignment anymore, so free its memory
+        self.input_seqs = None
 
     def export_ref_taxonomy(self):
         self.taxonomy_map = {}
@@ -407,6 +423,8 @@ class RefTreeBuilder:
         start_time = time.time()
         print "\n> Loading taxonomy from file: %s ...\n" % (self.cfg.taxonomy_fname)
         self.taxonomy = Taxonomy(self.cfg.taxonomy_fname, EpacConfig.REF_SEQ_PREFIX)
+        print "\n> Loading reference alignment from file: %s ...\n" % (self.cfg.align_fname)
+        self.load_alignment()
         print "\n=> Building a multifurcating tree from taxonomy with %d seqs ...\n" % self.taxonomy.seq_count()
         self.validate_taxonomy()
         self.build_multif_tree()
