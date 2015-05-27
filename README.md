@@ -37,7 +37,8 @@ annotations (matched by sequence name). Furtermore, you must choose the nomencla
 
 Sample command line:
 
-```cd example
+```sh
+   cd example
    ../sativa.py -s test.phy -t test.tax -x BAC
 ```
 
