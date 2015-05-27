@@ -5,6 +5,8 @@ import os
 import shutil
 import datetime
 import time
+import logging
+
 from ete2 import Tree, SeqGroup
 from argparse import ArgumentParser,RawTextHelpFormatter
 from config import EpacConfig,EpacTrainerConfig
@@ -47,7 +49,7 @@ class RefTreeBuilder:
             print("Invalid input file format: %s" % in_file)
             print("The supported input formats are fasta and phylip")
             sys.exit()
-
+            
     def validate_taxonomy(self):
         # make sure we don't taxonomy "irregularities" (more than 7 ranks or missing ranks in the middle)
         action = self.cfg.wrong_rank_count
@@ -101,14 +103,14 @@ class RefTreeBuilder:
         # check for invalid characters in rank names
         corr_ranks = self.taxonomy.normalize_rank_names()
         for old_rank in sorted(corr_ranks.keys()):
-            print "WARNING: Following rank name contains illegal symbols and was renamed: %s --> %s" % (old_rank, corr_ranks[old_rank])
+            self.cfg.log.warning("WARNING: Following rank name contains illegal symbols and was renamed: %s --> %s", old_rank, corr_ranks[old_rank])
         
         print ""
         
         # check for invalid characters in sequence IDs
         self.corr_seq_ids = self.taxonomy.normalize_seq_ids()
         for old_sid in sorted(self.corr_seq_ids.keys()):
-            print "WARNING: Following sequence ID contains illegal symbols and was renamed: %s --> %s" % (old_sid, self.corr_seq_ids[old_sid])
+            self.cfg.log.warning("WARNING: Following sequence ID contains illegal symbols and was renamed: %s --> %s" , old_sid, self.corr_seq_ids[old_sid])
         
         self.taxonomy.close_taxonomy_gaps()
 
@@ -177,8 +179,7 @@ class RefTreeBuilder:
         outgr_size = len(outgr.get_leaves())
         outgr.write(outfile=self.outgr_fname, format=9)
         self.reftree_outgroup = outgr
-        if self.cfg.verbose:
-            print "Outgroup for rooting was saved to: %s, outgroup size: %d" % (self.outgr_fname, outgr_size)
+        self.cfg.log.debug("Outgroup for rooting was saved to: %s, outgroup size: %d", self.outgr_fname, outgr_size)
             
         # remove unifurcation at the root
         if len(rt.children) == 1:
@@ -189,10 +190,10 @@ class RefTreeBuilder:
 
     # RAxML call to convert multifurcating tree to the strictly bifurcating one
     def resolve_multif(self):
-        print "\nReducing the alignment: \n"
+        self.cfg.log.debug("\nReducing the alignment: \n")
         self.reduced_refalign_fname = self.raxml_wrapper.reduce_alignment(self.refalign_fname)
         
-        print "\nResolving multifurcation: \n"
+        self.cfg.log.debug("\nResolving multifurcation: \n")
         raxml_params = ["-s", self.reduced_refalign_fname, "-g", self.reftree_mfu_fname, "-F", "--no-seq-check"]
         if self.cfg.mfresolv_method  == "fast":
             raxml_params += ["-D"]
@@ -206,7 +207,7 @@ class RefTreeBuilder:
             bfu_fname = self.raxml_wrapper.result_fname(self.mfresolv_job_name)
 
             # RAxML call to optimize model parameters and write them down to the binary model file
-            print "\nOptimizing model parameters: \n"
+            self.cfg.log.debug("\nOptimizing model parameters: \n")
             raxml_params = ["-f", "e", "-s", self.reduced_refalign_fname, "-t", bfu_fname, "--no-seq-check"]
             if self.cfg.raxml_model == "GTRCAT" and not self.cfg.compress_patterns:
                 raxml_params +=  ["-H"]
@@ -398,14 +399,14 @@ class RefTreeBuilder:
         orig_tax = self.taxonomy_map
         jw.set_origin_taxonomy(orig_tax)
         
-        print "Calculating the speciation rate...\n"
+        self.cfg.log.debug("Calculating the speciation rate...\n")
         tp = tree_param(tree = self.reftree_lbl_str, origin_taxonomy = orig_tax)
         jw.set_rate(tp.get_speciation_rate_fast())
         jw.set_nodes_height(self.node_height_map)
         
         jw.set_binary_model(self.optmod_fname)
         
-        print "Writing down the reference file...\n"
+        self.cfg.log.debug("Writing down the reference file...\n")
         jw.dump(self.cfg.refjson_fname)
 
     def cleanup(self):
@@ -421,36 +422,43 @@ class RefTreeBuilder:
     # top-level function to build a reference tree    
     def build_ref_tree(self):
         start_time = time.time()
-        print "\n> Loading taxonomy from file: %s ...\n" % (self.cfg.taxonomy_fname)
+        self.cfg.log.info("\n> Loading taxonomy from file: %s ...\n" , self.cfg.taxonomy_fname)
+#        print "\n> Loading taxonomy from file: %s ...\n" % (self.cfg.taxonomy_fname)
         self.taxonomy = Taxonomy(self.cfg.taxonomy_fname, EpacConfig.REF_SEQ_PREFIX)
-        print "\n> Loading reference alignment from file: %s ...\n" % (self.cfg.align_fname)
+        self.cfg.log.info("\n> Loading reference alignment from file: %s ...\n" , self.cfg.align_fname)
+#        print "\n> Loading reference alignment from file: %s ...\n" % (self.cfg.align_fname)
         self.load_alignment()
-        print "\n=> Building a multifurcating tree from taxonomy with %d seqs ...\n" % self.taxonomy.seq_count()
+        self.cfg.log.info("\n=> Building a multifurcating tree from taxonomy with %d seqs ...\n" , self.taxonomy.seq_count())
+#        print "\n=> Building a multifurcating tree from taxonomy with %d seqs ...\n" % self.taxonomy.seq_count()
         self.validate_taxonomy()
         self.build_multif_tree()
-        print "\n==> Building the reference alignment ...\n"
+        self.cfg.log.info("\n==> Building the reference alignment ...\n")
+#        print "\n==> Building the reference alignment ...\n"
         self.export_ref_alignment()
         self.export_ref_taxonomy()
-        print "\n===> Saving the outgroup for later re-rooting ...\n"
+        self.cfg.log.info("\n===> Saving the outgroup for later re-rooting ...\n")
+#        print "\n===> Saving the outgroup for later re-rooting ...\n"
         self.save_rooting()
-        print "\n====> RAxML call: resolve multifurcation ...\n"
+        self.cfg.log.info("\n====> RAxML call: resolve multifurcation ...\n")
+#        print "\n====> RAxML call: resolve multifurcation ...\n"
         self.resolve_multif()
         self.load_reduced_refalign()
-        print "\n=====> RAxML-EPA call: labeling the branches ...\n"
+        self.cfg.log.info("\n=====> RAxML-EPA call: labeling the branches ...\n")
+#        print "\n=====> RAxML-EPA call: labeling the branches ...\n"
         self.epa_branch_labeling()
-        print "\n======> Post-processing the EPA tree (re-rooting, taxonomic labeling etc.) ...\n"
+        self.cfg.log.info("\n======> Post-processing the EPA tree (re-rooting, taxonomic labeling etc.) ...\n")
+#        print "\n======> Post-processing the EPA tree (re-rooting, taxonomic labeling etc.) ...\n"
         self.epa_post_process()
         self.calc_node_heights()
         
-        if self.cfg.verbose:
-            print "\n=======> Checking branch labels ...\n"
-            print "shared rank names before training: " + repr(self.taxonomy.get_common_ranks())
-            print "shared rank names after  training: " + repr(self.mono_index())
+        self.cfg.log.debug("\n=======> Checking branch labels ...\n")
+        self.cfg.log.debug("shared rank names before training: %s", repr(self.taxonomy.get_common_ranks()))
+        self.cfg.log.debug("shared rank names after  training: %s", repr(self.mono_index()))
         
-        print "\n=======> Saving the reference JSON file ...\n"
+        self.cfg.log.info("\n=======> Saving the reference JSON file ...\n")
         self.write_json()
         elapsed_time = time.time() - start_time
-        print "\n***********  Done! (%.0f s) **********\n" % elapsed_time
+        self.cfg.log.info("\n***********  Done! (%.0f s) **********\n", elapsed_time)
 
 def parse_args():
     parser = ArgumentParser(description="Build a reference tree for EPA taxonomic placement.",
@@ -470,6 +478,8 @@ information needed for taxonomic placement of query sequences.""")
             help="""Config file name.""")
     parser.add_argument("-C", dest="compress_patterns", default=False, action="store_true",
             help="""Enable pattern compression during model optimization under GTRCAT. Default: FALSE""")
+    parser.add_argument("-o", dest="output_dir", default=".",
+            help="""Output directory""")
     parser.add_argument("-n", dest="output_name", default=None,
             help="""Run name.""")
     parser.add_argument("-m", dest="mfresolv_method", choices=["thorough", "fast", "ultrafast"],

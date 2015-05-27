@@ -30,12 +30,12 @@ class FileUtils:
 class RaxmlWrapper:
 
     def __init__(self, config): 
-        self.config = config
+        self.cfg = config
     
     def make_raxml_fname(self, stem, job_name, absolute=True):
         fname = "RAxML_" + stem + "." + job_name
         if absolute:
-            return self.config.raxml_outdir + fname
+            return self.cfg.raxml_outdir + fname
         else:
             return fname            
 
@@ -79,13 +79,13 @@ class RaxmlWrapper:
             print "ERROR: Invalid RAxML-EPA running mode: %s" % mode
             sys.exit()
 
-        if self.config.epa_use_heuristic in ["TRUE", "YES", "1"]:
-            raxml_params += ["-G", str(self.config.epa_heur_rate)]            
+        if self.cfg.epa_use_heuristic in ["TRUE", "YES", "1"]:
+            raxml_params += ["-G", str(self.cfg.epa_heur_rate)]            
 
-        if self.config.epa_load_optmod and optmod_fname:
+        if self.cfg.epa_load_optmod and optmod_fname:
             if os.path.isfile(optmod_fname):
                 raxml_params += ["-R", optmod_fname]
-                if self.config.raxml_model == "GTRCAT" and not self.config.compress_patterns:
+                if self.cfg.raxml_model == "GTRCAT" and not self.cfg.compress_patterns:
                     raxml_params +=  ["-H"]
             else:
                 print "WARNING: Binary model file not found: %s" % optmod_fname
@@ -120,26 +120,26 @@ class RaxmlWrapper:
             return jp
 
     def run(self, job_name, params, silent=True):
-        if self.config.raxml_model == "AUTO":
+        if self.cfg.raxml_model == "AUTO":
             print "ERROR: you should have called EpacConfig.resolve_auto_settings() in your script!\n"
             sys.exit()
 
         self.cleanup(job_name)
         
-        params += ["-m", self.config.raxml_model, "-n", job_name]
+        params += ["-m", self.cfg.raxml_model, "-n", job_name]
         params += ["--no-bfgs"]
 
-        if self.config.run_on_cluster:
+        if self.cfg.run_on_cluster:
             self.run_cluster(params)
             return;        
 
-        if self.config.raxml_remote_call:
-            call_str = ["ssh", self.config.raxml_remote_host]
+        if self.cfg.raxml_remote_call:
+            call_str = ["ssh", self.cfg.raxml_remote_host]
         else:
             call_str = []
-        call_str += self.config.raxml_cmd + params
+        call_str += self.cfg.raxml_cmd + params
         if silent:        
-            print ' '.join(call_str) + "\n"
+            self.cfg.log.debug(' '.join(call_str) + "\n")
             out_fname = self.make_raxml_fname("output", job_name)
             with open(out_fname, "w") as fout:
                 call(call_str, stdout=fout, stderr=STDOUT)
@@ -149,27 +149,27 @@ class RaxmlWrapper:
         return ' '.join(call_str)
 
     def run_cluster(self, params):
-        if self.config.raxml_remote_call:
-            qsub_call_str = ["ssh", self.config.raxml_remote_host]
+        if self.cfg.raxml_remote_call:
+            qsub_call_str = ["ssh", self.cfg.raxml_remote_host]
         else:
             qsub_call_str = []
         
-        raxml_call_cmd = self.config.raxml_cmd + params        
+        raxml_call_cmd = self.cfg.raxml_cmd + params        
         for i in range(len(raxml_call_cmd)):
             if isinstance(raxml_call_cmd[i], basestring):
-                raxml_call_cmd[i] = FileUtils.rebase(raxml_call_cmd[i], self.config.epac_home, self.config.cluster_epac_home)
+                raxml_call_cmd[i] = FileUtils.rebase(raxml_call_cmd[i], self.cfg.epac_home, self.cfg.cluster_epac_home)
         raxml_call_str = ' '.join(raxml_call_cmd)
                 
-        script_fname = self.config.tmp_fname("%NAME%_sub.sh")
+        script_fname = self.cfg.tmp_fname("%NAME%_sub.sh")
         FileUtils.remove_if_exists(script_fname)
-        shutil.copy(self.config.cluster_qsub_script, script_fname)
+        shutil.copy(self.cfg.cluster_qsub_script, script_fname)
         qsub_job_name = "epa"        
         with open(script_fname, "a") as fout:
             fout.write("#$ -N %s\n" % qsub_job_name)
             fout.write("\n")            
             fout.write(raxml_call_str + "\n")
 
-        cluster_script_fname = FileUtils.rebase(script_fname, self.config.epac_home, self.config.cluster_epac_home)
+        cluster_script_fname = FileUtils.rebase(script_fname, self.cfg.epac_home, self.cfg.cluster_epac_home)
         qsub_call_str += ["qsub", "-sync", "y", cluster_script_fname]
 
         print raxml_call_str + "\n"
@@ -177,7 +177,7 @@ class RaxmlWrapper:
 #        sys.exit()
 
         call(qsub_call_str)
-        if not self.config.debug:
+        if not self.cfg.debug:
             FileUtils.remove_if_exists(script_fname)
 
     def result_fname(self, job_name):

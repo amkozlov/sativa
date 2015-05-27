@@ -20,16 +20,20 @@ class LeaveOneTest:
         self.minlw = args.min_lhw
         self.jplace_fname = args.jplace_fname
         self.ranktest = args.ranktest
-        self.output_fname = args.output_dir + "/" + args.output_name
-
-        # switch off branch length filter
-        self.brlen_pv = 0.
+        
+        self.mis_fname = self.cfg.out_fname("%NAME%.mis")
+        self.premis_fname = self.cfg.out_fname("%NAME%.premis")
+        self.misrank_fname = self.cfg.out_fname("%NAME%.misrank")
+        self.stats_fname = self.cfg.out_fname("%NAME%.stats")
 
         self.tmp_refaln = config.tmp_fname("%NAME%.refaln")
         self.reftree_lbl_fname = config.tmp_fname("%NAME%_lbl.tre")
         self.reftree_tax_fname = config.tmp_fname("%NAME%_tax.tre")
         self.optmod_fname = self.cfg.tmp_fname("%NAME%.opt")
         self.reftree_fname = self.cfg.tmp_fname("ref_%NAME%.tre")
+
+        # switch off branch length filter
+        self.brlen_pv = 0.
 
         try:
             self.refjson = RefJsonParser(config.refjson_fname, ver="1.3")
@@ -164,9 +168,9 @@ class LeaveOneTest:
     
     def write_mislabels(self, final=True):
         if final:
-            out_fname = "%s.mis" % self.output_fname
+            out_fname = self.mis_fname
         else:
-            out_fname = "%s.premis" % self.output_fname
+            out_fname = self.premis_fname
         
         with open(out_fname, "w") as fo_all:
             fields = ["SeqID", "MislabeledLevel", "OriginalLabel", "ProposedLabel", "Confidence", "OriginalTaxonomyPath", "ProposedTaxonomyPath", "PerRankConfidence"]
@@ -187,7 +191,7 @@ class LeaveOneTest:
             return
 
         if self.ranktest:
-            with open("%s.misrank" % self.output_fname, "w") as fo_all:
+            with open(self.misrank_fname, "w") as fo_all:
                 fields = ["RankID", "MislabeledLevel", "OriginalLabel", "ProposedLabel", "Confidence", "OriginalTaxonomyPath", "ProposedTaxonomyPath", "PerRankConfidence"]
                 header = ";" + "\t".join(fields)  + "\n"
                 fo_all.write(header)
@@ -201,7 +205,7 @@ class LeaveOneTest:
                         print(output) 
 
         print "Mislabels counts by ranks:"        
-        with open("%s.stats" % self.output_fname, "w") as fo_stat:
+        with open(self.stats_fname, "w") as fo_stat:
             seq_sum = 0
             rank_sum = 0
             for i in range(1, len(self.mislabels_cnt)):
@@ -214,7 +218,7 @@ class LeaveOneTest:
                         rank_sum += self.rank_mislabels_cnt[i]
                         output += "\t%d" % rank_sum
                     fo_stat.write(output + "\n")
-                    print(output) 
+                    self.cfg.log.info(output) 
        
     def get_orig_ranks(self, seq_name):
         nodes = self.tax_tree.get_leaves_by_name(seq_name)
@@ -393,28 +397,28 @@ class LeaveOneTest:
     def run_test(self):
         self.raxml = RaxmlWrapper(self.cfg)
 
-        print "Number of sequences in the reference: %d\n" % self.reftree_size
+        config.log.info("Number of sequences in the reference: %d\n", self.reftree_size)
 
         self.refjson.get_raxml_readable_tree(self.reftree_fname)
         self.refalign_fname = self.refjson.get_alignment(self.tmp_refaln)        
         self.refjson.get_binary_model(self.optmod_fname)
 
         if self.ranktest:
-            print "Running the leave-one-rank-out test...\n"
+            config.log.info("Running the leave-one-rank-out test...\n")
             subtree_count = self.run_leave_subtree_out_test()
             
-        print "Running the leave-one-sequence-out test...\n"
+        config.log.info("Running the leave-one-sequence-out test...\n")
         self.run_leave_seq_out_test()
 
         if len(self.mislabels) > 0:
-            print "Leave-one-out test identified %d suspicious sequences; running final EPA test to check them...\n" % len(self.mislabels)
+            config.log.info("Leave-one-out test identified %d suspicious sequences; running final EPA test to check them...\n", len(self.mislabels))
             if self.cfg.debug:
                 self.write_mislabels(final=False)
             self.run_final_epa_test()
 
         self.sort_mislabels()
         self.write_mislabels()
-        print "\nPercentage of mislabeled sequences: %.2f %%" % (float(len(self.mislabels)) / self.reftree_size * 100)
+        config.log.info("\nPercentage of mislabeled sequences: %.2f %%", (float(len(self.mislabels)) / self.reftree_size * 100))
 
         if not self.cfg.debug:
             FileUtils.remove_if_exists(self.reftree_fname)
@@ -450,7 +454,7 @@ def parse_args():
                     Default: 0 to output all possbile assignments.""")
     parser.add_argument("-o", dest="output_dir", default=".",
             help="""Output directory""")
-    parser.add_argument("-n", dest="output_name", default="result",
+    parser.add_argument("-n", dest="output_name", default=".",
             help="""Query name, will be used as prefix for output file names (default: result)""")
     parser.add_argument("-m", dest="method", default="1",
             help="""Assignment method 1 or 2
@@ -501,18 +505,16 @@ def check_args(args):
         args.method == "1"
         
 def print_run_info(config, args):
-    print("Mislabels search is running with the following parameters:")
-    print(" Reference:........................%s" % args.ref_fname)
+    config.log.info("Mislabels search is running with the following parameters:")
+    config.log.info(" Reference:........................%s", args.ref_fname)
     if args.jplace_fname:
-        print(" EPA jplace file:..................%s" % args.jplace_fname)
-    print(" Number of threads:................%d" % config.num_threads)
-    print(" Min likelihood weight:............%f" % args.min_lhw)
-    print(" Assignment method:................%s" % args.method)
+        config.log.info(" EPA jplace file:..................%s", args.jplace_fname)
+    config.log.info(" Number of threads:................%d", config.num_threads)
+    config.log.info(" Min likelihood weight:............%f", args.min_lhw)
+    config.log.info(" Assignment method:................%s", args.method)
 #    print(" P-value for branch length test:...%f" % args.p_value)
-    print("Result will be written to:")
-    print(args.output_dir)
-    print("")
-
+    config.log.info(" Output directory:.................%s", os.path.abspath(args.output_dir))
+    config.log.info("")
 
 if __name__ == "__main__":
     if len(sys.argv) == 1: 
@@ -533,7 +535,8 @@ if __name__ == "__main__":
     if not config.debug:
         t.cleanup()
 
-    print "\nResults were saved to: %s.mis\n" % os.path.abspath(t.output_fname)
+    config.log.info("\nResults were saved to: %s", os.path.abspath(t.mis_fname))
+    config.log.info("Execution log was saved to: %s\n", os.path.abspath(config.log_fname))
 
     elapsed_time = time.time() - start_time
 #    print "Done! (%.0f s)\n" % elapsed_time

@@ -12,6 +12,7 @@ Find taxonomically mislabeled sequences
     -n NAME     run name. Default: identical to TAXFILE
     -T THREADS  number of threads. Default: equals to number of CPU cores
     -o OUTDIR   directory for output files. Default: same directory as TAXFILE
+    -v          verbose output
     -d LEVEL    debug level: 0, 1 or 2. Default: 0 (debug off).
     -h          display this help and exit
 EOF
@@ -39,8 +40,9 @@ TMPDIR=tmp
 CFG=sativa.cfg
 
 DEBUG=0
+VERBOSE=""
 
-while getopts "hd:t:s:x:n:o:T:" opt; do
+while getopts "hd:t:s:x:n:o:T:v" opt; do
     case "$opt" in
     h)
         show_help
@@ -60,6 +62,7 @@ while getopts "hd:t:s:x:n:o:T:" opt; do
         ;;
     T)  THREADS=$OPTARG
         ;;
+    v)  VERBOSE="-v"
     esac
 done
 
@@ -92,9 +95,9 @@ else
   DBG=""
 fi
 
-$EPACDIR/epa_trainer.py -t $INFILE_TAX -s $INFILE_ALI -r $JSON -x $TAXCODE_NAME -c $CFG -C -no-hmmer -tmpdir $TMPDIR -m $MODE -T $THREADS $DBG
+$EPACDIR/epa_trainer.py -t $INFILE_TAX -s $INFILE_ALI -r $JSON -x $TAXCODE_NAME -c $CFG -o $OUTDIR -n $NAME -C -no-hmmer -tmpdir $TMPDIR -m $MODE -T $THREADS $DBG $VERBOSE
 
-$EPACDIR/find_mislabels.py -r $JSON -c $CFG -o $OUTDIR -n $NAME -tmpdir $TMPDIR -T $THREADS $DBG
+$EPACDIR/find_mislabels.py -r $JSON -c $CFG -o $OUTDIR -n $NAME -tmpdir $TMPDIR -T $THREADS $DBG $VERBOSE
 
 L1OUT_JPLACE=$TMPDIR/RAxML_leaveOneOutResults.l1out_seq_${NAME}.jplace
 FINAL_JPLACE=$TMPDIR/RAxML_portableTree.final_epa_${NAME}.jplace

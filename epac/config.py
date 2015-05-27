@@ -6,6 +6,7 @@ import glob
 import shutil
 import datetime
 import time
+import logging
 import ConfigParser
 
 class DefaultedConfigParser(ConfigParser.SafeConfigParser):
@@ -60,14 +61,13 @@ class EpacConfig:
         self.refjson_fname = args.ref_fname        
         self.basepath = os.path.dirname(os.path.abspath(__file__))
         self.epac_home = os.path.abspath(os.path.join(self.basepath, os.pardir)) + "/"
-        self.reftree_home = os.path.abspath("reftree/") + "/"
+        self.output_dir = args.output_dir
         if args.temp_dir:
             self.temp_dir = args.temp_dir + "/"
         else:
             self.temp_dir = self.epac_home + "/tmp/"
-        self.raxml_outdir = self.temp_dir #"raxml_output/"
+        self.raxml_outdir = self.temp_dir
         self.raxml_outdir_abs = os.path.abspath(self.raxml_outdir)
-        self.results_home = os.path.abspath("results/") + "/"
         self.set_defaults()
         if args.config_fname:
             self.read_from_file(args.config_fname)
@@ -79,8 +79,12 @@ class EpacConfig:
             self.name = args.output_name
         else:
             self.name = "%d" % (time.time()*1000) #datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        results_name = self.name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.results_dir = self.results_home + results_name + "/"
+        self.init_logger()
+        
+#        self.reftree_home = os.path.abspath("reftree/") + "/"
+#        self.results_home = os.path.abspath("results/") + "/"
+#        results_name = self.name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+#        self.results_dir = self.results_home + results_name + "/"
 
     def set_defaults(self):
         self.muscle_home = self.epac_home + "/epac/bin" + "/"
@@ -99,6 +103,31 @@ class EpacConfig:
         self.min_confidence = 0.2
         self.num_threads = 2
         self.compress_patterns = False
+        
+    def init_logger(self):
+        self.log_fname = self.out_fname("%NAME%.log")
+        if self.verbose:
+           log_lvl = logging.DEBUG
+        else:
+           log_lvl = logging.INFO
+
+        # create logger object
+        self.log = logging.getLogger('epac')
+        self.log.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(message)s')
+
+        # add console handler
+        ch = logging.StreamHandler()
+        ch.setLevel(log_lvl)
+        ch.setFormatter(formatter)        
+        self.log.addHandler(ch)
+
+        # add console handler
+        fh = logging.FileHandler(self.log_fname)
+        fh.setLevel(log_lvl)
+        fh.setFormatter(formatter)        
+        self.log.addHandler(fh)
+        
 
     def resolve_auto_settings(self, tree_size):
         if self.raxml_model == "AUTO":
@@ -182,7 +211,10 @@ class EpacConfig:
         return in_str.replace("%NAME%", self.name)
     
     def tmp_fname(self, fname):
-        return self.temp_dir + self.subst_name(fname)
+        return os.path.join(self.temp_dir, self.subst_name(fname))
+
+    def out_fname(self, fname):
+        return os.path.join(self.output_dir, self.subst_name(fname))
     
 class EpacTrainerConfig(EpacConfig):
     

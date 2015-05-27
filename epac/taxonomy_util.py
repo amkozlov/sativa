@@ -431,9 +431,6 @@ class TaxTreeBuilder:
 
     def build(self, min_rank=0, max_seqs_per_leaf=1e9, clades_to_include=[], clades_to_ignore=[]):
 
-        if self.config.verbose:
-            print "Number of nodes: %d" % self.taxonomy.seq_count()
-        
         t0 = Tree()
         t0.add_feature("name", TaxTreeBuilder.ROOT_LABEL)
         self.tree_nodes[TaxTreeBuilder.ROOT_LABEL] = t0;
@@ -494,8 +491,7 @@ class TaxTreeBuilder:
             seq_ids += [sid]
             added += 1
 
-        if self.config.verbose:
-            print "Total nodes in resulting tree: ", added
+        self.config.log.debug("Total nodes in resulting tree: %d", added)
         
         if self.config.debug:
             reftax_fname = self.config.tmp_fname("%NAME%_mf_unpruned.tre")
