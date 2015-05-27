@@ -422,43 +422,35 @@ class RefTreeBuilder:
     # top-level function to build a reference tree    
     def build_ref_tree(self):
         start_time = time.time()
-        self.cfg.log.info("\n> Loading taxonomy from file: %s ...\n" , self.cfg.taxonomy_fname)
-#        print "\n> Loading taxonomy from file: %s ...\n" % (self.cfg.taxonomy_fname)
+        self.cfg.log.info("=> Loading taxonomy from file: %s ...\n" , self.cfg.taxonomy_fname)
         self.taxonomy = Taxonomy(self.cfg.taxonomy_fname, EpacConfig.REF_SEQ_PREFIX)
-        self.cfg.log.info("\n> Loading reference alignment from file: %s ...\n" , self.cfg.align_fname)
-#        print "\n> Loading reference alignment from file: %s ...\n" % (self.cfg.align_fname)
+        self.cfg.log.info("==> Loading reference alignment from file: %s ...\n" , self.cfg.align_fname)
         self.load_alignment()
-        self.cfg.log.info("\n=> Building a multifurcating tree from taxonomy with %d seqs ...\n" , self.taxonomy.seq_count())
-#        print "\n=> Building a multifurcating tree from taxonomy with %d seqs ...\n" % self.taxonomy.seq_count()
+        self.cfg.log.info("===> Building a multifurcating tree from taxonomy with %d seqs ...\n" , self.taxonomy.seq_count())
         self.validate_taxonomy()
         self.build_multif_tree()
-        self.cfg.log.info("\n==> Building the reference alignment ...\n")
-#        print "\n==> Building the reference alignment ...\n"
+        self.cfg.log.info("====> Building the reference alignment ...\n")
         self.export_ref_alignment()
         self.export_ref_taxonomy()
-        self.cfg.log.info("\n===> Saving the outgroup for later re-rooting ...\n")
-#        print "\n===> Saving the outgroup for later re-rooting ...\n"
+        self.cfg.log.info("=====> Saving the outgroup for later re-rooting ...\n")
         self.save_rooting()
-        self.cfg.log.info("\n====> RAxML call: resolve multifurcation ...\n")
-#        print "\n====> RAxML call: resolve multifurcation ...\n"
+        self.cfg.log.info("======> RAxML call: resolve multifurcation ...\n")
         self.resolve_multif()
         self.load_reduced_refalign()
-        self.cfg.log.info("\n=====> RAxML-EPA call: labeling the branches ...\n")
-#        print "\n=====> RAxML-EPA call: labeling the branches ...\n"
+        self.cfg.log.info("=======> RAxML-EPA call: labeling the branches ...\n")
         self.epa_branch_labeling()
-        self.cfg.log.info("\n======> Post-processing the EPA tree (re-rooting, taxonomic labeling etc.) ...\n")
-#        print "\n======> Post-processing the EPA tree (re-rooting, taxonomic labeling etc.) ...\n"
+        self.cfg.log.info("========> Post-processing the EPA tree (re-rooting, taxonomic labeling etc.) ...\n")
         self.epa_post_process()
         self.calc_node_heights()
         
-        self.cfg.log.debug("\n=======> Checking branch labels ...\n")
+        self.cfg.log.debug("\n=========> Checking branch labels ...")
         self.cfg.log.debug("shared rank names before training: %s", repr(self.taxonomy.get_common_ranks()))
-        self.cfg.log.debug("shared rank names after  training: %s", repr(self.mono_index()))
+        self.cfg.log.debug("shared rank names after  training: %s\n", repr(self.mono_index()))
         
-        self.cfg.log.info("\n=======> Saving the reference JSON file ...\n")
+        self.cfg.log.info("=========> Saving the reference JSON file ...\n")
         self.write_json()
         elapsed_time = time.time() - start_time
-        self.cfg.log.info("\n***********  Done! (%.0f s) **********\n", elapsed_time)
+#        self.cfg.log.info("\n***********  Done! (%.0f s) **********\n", elapsed_time)
 
 def parse_args():
     parser = ArgumentParser(description="Build a reference tree for EPA taxonomic placement.",

@@ -70,6 +70,7 @@ class EpacConfig:
         self.raxml_outdir_abs = os.path.abspath(self.raxml_outdir)
         self.set_defaults()
         if args.config_fname:
+            self.config_path = os.path.dirname(os.path.abspath(args.config_fname))
             self.read_from_file(args.config_fname)
         # command line setting has preference over config file and default
         if args.num_threads:
@@ -80,11 +81,6 @@ class EpacConfig:
         else:
             self.name = "%d" % (time.time()*1000) #datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.init_logger()
-        
-#        self.reftree_home = os.path.abspath("reftree/") + "/"
-#        self.results_home = os.path.abspath("results/") + "/"
-#        results_name = self.name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-#        self.results_dir = self.results_home + results_name + "/"
 
     def set_defaults(self):
         self.muscle_home = self.epac_home + "/epac/bin" + "/"
@@ -153,7 +149,7 @@ class EpacConfig:
         if rpath.startswith("/"):
             return rpath
         else:
-            return self.epac_home + rpath
+            return os.path.join(self.config_path, rpath)
         
     def check_raxml(self):
         self.raxml_exec_full = self.raxml_home + self.raxml_exec
@@ -175,7 +171,7 @@ class EpacConfig:
         
     def read_from_file(self, config_fname):
         if not os.path.exists(config_fname):
-            print "Config file not found: " + config_fname
+            print "ERROR: Config file not found: " + config_fname
             sys.exit()
 
         parser = DefaultedConfigParser() #ConfigParser.SafeConfigParser()
@@ -183,7 +179,7 @@ class EpacConfig:
         
         self.raxml_home = parser.get_param("raxml", "raxml_home", str, self.raxml_home)
         if self.raxml_home:
-            self.resolve_relative_path(self.raxml_home + "/")
+            self.raxml_home = self.resolve_relative_path(self.raxml_home + "/")
         self.raxml_exec = parser.get_param("raxml", "raxml_exec", str, self.raxml_exec)
         self.raxml_remote_host = parser.get_param("raxml", "raxml_remote_host", str, self.raxml_remote_host)
 

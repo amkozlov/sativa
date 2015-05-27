@@ -4,14 +4,17 @@ import sys
 import os
 import time
 import glob
+import multiprocessing
 from operator import itemgetter
-from ete2 import Tree, SeqGroup
-from argparse import ArgumentParser
-from config import EpacConfig
-from raxml_util import RaxmlWrapper, FileUtils
-from json_util import RefJsonParser, RefJsonChecker, EpaJsonParser
-from taxonomy_util import TaxCode, Taxonomy
-from classify_util import TaxTreeHelper,TaxClassifyHelper
+from subprocess import call
+
+from epac.ete2 import Tree, SeqGroup
+from epac.argparse import ArgumentParser
+from epac.config import EpacConfig
+from epac.raxml_util import RaxmlWrapper, FileUtils
+from epac.json_util import RefJsonParser, RefJsonChecker, EpaJsonParser
+from epac.taxonomy_util import TaxCode, Taxonomy
+from epac.classify_util import TaxTreeHelper,TaxClassifyHelper
 
 class LeaveOneTest:
     def __init__(self, config, args):
@@ -35,11 +38,19 @@ class LeaveOneTest:
         # switch off branch length filter
         self.brlen_pv = 0.
 
+        self.mislabels = []
+        self.mislabels_cnt = []
+        self.rank_mislabels = []
+        self.rank_mislabels_cnt = []
+        self.misrank_conf_map = {}
+
+    def load_refjson(self, refjson_fname):
         try:
-            self.refjson = RefJsonParser(config.refjson_fname, ver="1.3")
+            self.refjson = RefJsonParser(refjson_fname, ver="1.3")
         except ValueError:
             print("Invalid json file format!")
             sys.exit()
+            
         #validate input json format 
         self.refjson.validate()
         self.rate = self.refjson.get_rate()
@@ -58,17 +69,43 @@ class LeaveOneTest:
         # If we're loading the pre-optimized model, we MUST set the same rate het. mode as in the ref file        
         if self.cfg.epa_load_optmod:
             self.cfg.raxml_model = self.refjson.get_ratehet_model()
-        
+
         self.classify_helper = TaxClassifyHelper(self.cfg, self.bid_taxonomy_map, self.brlen_pv, self.rate, self.node_height)
         
         tax_code_name = self.refjson.get_taxcode()
         self.tax_code = TaxCode(tax_code_name)
-        
-        self.mislabels = []
+
         self.mislabels_cnt = [0] * TaxCode.UNI_TAX_LEVELS
-        self.rank_mislabels = []
         self.rank_mislabels_cnt = [0] * TaxCode.UNI_TAX_LEVELS
-        self.misrank_conf_map = {}
+        
+    def run_epa_trainer(self, refjson_fname, args):
+        sativa_home = os.path.dirname(os.path.abspath(__file__))
+        trainer_script = os.path.join(sativa_home, "epac", "epa_trainer.py")
+        call_str = [trainer_script]
+        call_str += ["-s", args.align_fname]
+        call_str += ["-t", args.taxonomy_fname]
+        call_str += ["-x", args.taxcode_name]
+        call_str += ["-r", refjson_fname]
+        call_str += ["-T", str(args.num_threads)]
+        
+        call_str += ["-c", args.config_fname]
+        call_str += ["-o", args.output_dir]
+        call_str += ["-n", self.cfg.name]
+        call_str += ["-tmpdir", args.temp_dir]
+        
+        call_str += ["-C", "-no-hmmer"]
+        
+        if args.verbose:
+            call_str += ["-v"]
+        if args.debug:
+            call_str += ["-debug"]
+       
+        #print call_str
+        call(call_str)
+        
+        if not os.path.isfile(refjson_fname):
+            self.cfg.log.error("\nBuilding reference tree failed, see error messages above.")
+            sys.exit(-1)
 
     def cleanup(self):
         FileUtils.remove_if_exists(self.tmp_refaln)
@@ -204,7 +241,7 @@ class LeaveOneTest:
                     if self.cfg.verbose:
                         print(output) 
 
-        print "Mislabels counts by ranks:"        
+        self.cfg.log.info("Mislabels counts by ranks:")
         with open(self.stats_fname, "w") as fo_stat:
             seq_sum = 0
             rank_sum = 0
@@ -397,7 +434,7 @@ class LeaveOneTest:
     def run_test(self):
         self.raxml = RaxmlWrapper(self.cfg)
 
-        config.log.info("Number of sequences in the reference: %d\n", self.reftree_size)
+#        config.log.info("Number of sequences in the reference: %d\n", self.reftree_size)
 
         self.refjson.get_raxml_readable_tree(self.reftree_fname)
         self.refalign_fname = self.refjson.get_alignment(self.tmp_refaln)        
@@ -425,76 +462,90 @@ class LeaveOneTest:
             FileUtils.remove_if_exists(self.optmod_fname)
             FileUtils.remove_if_exists(self.refalign_fname)
 
-def print_options():
-    print("usage: python find_mislabels.py -r example/reference.json -t 0.5 -v")
-    print("Options:")
-    print("    -r reference                   Specify the reference alignment and  taxonomy  in  json  format.\n")
-    print("    -t min likelihood weight       A value between 0 and 1, the minimal sum of likelihood weight of")
-    print("                                   an assignment to a specific rank. This value represents a confi-")
-    print("                                   dence measure of the assignment,  assignments  below  this value")
-    print("                                   will be discarded. Default: 0 to output all possbile assignments.\n")
-    print("    -o outputdir                   Specify the directory for output files.\n")
-    print("    -n name                        Specify output files prefix.\n")
-    print("    -m method                      Assignment method 1 or 2")
-    print("                                   1: Max sum likelihood (default)")
-    print("                                   2: Max likelihood placement\n ")
-    print("    -T numthread                   Specify the number of CPUs.\n")
-    print("    -j jplacefile                  RAxML EPA placement file to process\n")
-    print("    -v                             Print the results on screen.\n")
-
 def parse_args():
     parser = ArgumentParser(description="Find putative mislabeled/misplaced sequences in a taxonomy.",
-    epilog="Example: python find_mislabels.py -r example/reference.json -t 0.5 -v")
+    epilog="Example: python sativa.py -s example/test.phy -t example/test.tax -x BAC")
+    parser.add_argument("-s", dest="align_fname",
+            help="""Reference alignment file. Sequences must be aligned, their IDs must correspond to those
+in taxonomy file.""")
+    parser.add_argument("-t", dest="taxonomy_fname",
+            help="""Reference taxonomy file.""")
+    parser.add_argument("-x", dest="taxcode_name", choices=["bac", "bot", "zoo", "vir"], type = str.lower,
+            help="""Taxonomic code: BAC(teriological), BOT(anical), ZOO(logical), VIR(ological)""")
+    parser.add_argument("-n", dest="output_name", default=None,
+            help="""Job name, will be used as a prefix for output file names (default: taxonomy file name without extension)""")
+    parser.add_argument("-o", dest="output_dir", default=".",
+            help="""Output directory (default: current).""")
+    parser.add_argument("-T", dest="num_threads", type=int, default=multiprocessing.cpu_count(),
+            help="""Specify the number of CPUs (default: %d)""" % multiprocessing.cpu_count())
+    parser.add_argument("-v", dest="verbose", action="store_true",
+            help="""Print additional info messages to the console.""")
+
+    parser.add_argument("-c", dest="config_fname", default=None,
+            help="Config file name.")
     parser.add_argument("-r", dest="ref_fname",
             help="""Specify the reference alignment and taxonomy in json format.""")
-    parser.add_argument("-t", dest="min_lhw", type=float, default=0.,
+    parser.add_argument("-j", dest="jplace_fname", default=None,
+            help="""Do not call RAxML EPA, use existing .jplace file as input instead.""")
+    parser.add_argument("-l", dest="min_lhw", type=float, default=0.,
             help="""A value between 0 and 1, the minimal sum of likelihood weight of
                     an assignment to a specific rank. This value represents a confidence 
                     measure of the assignment, assignments below this value will be discarded. 
                     Default: 0 to output all possbile assignments.""")
-    parser.add_argument("-o", dest="output_dir", default=".",
-            help="""Output directory""")
-    parser.add_argument("-n", dest="output_name", default=".",
-            help="""Query name, will be used as prefix for output file names (default: result)""")
     parser.add_argument("-m", dest="method", default="1",
             help="""Assignment method 1 or 2
                     1: Max sum likelihood (default)
                     2: Max likelihood placement""")
 #    parser.add_argument("-p", dest="p_value", type=float, default=0.001,
 #            help="""P-value for branch length Erlang test. Default: 0.001\n""")
-    parser.add_argument("-ranktest", dest="ranktest", action="store_true",
-            help="""Test for misplaced higher ranks.""")
-    parser.add_argument("-T", dest="num_threads", type=int, default=None,
-            help="""Specify the number of CPUs.  Default: 2""")
-    parser.add_argument("-v", dest="verbose", action="store_true",
-            help="""Print additional info messages to the console.""")
+
     parser.add_argument("-debug", dest="debug", action="store_true",
             help="""Debug mode, intermediate files will not be cleaned up.""")
-    parser.add_argument("-j", dest="jplace_fname", default=None,
-            help="""Do not call RAxML EPA, use existing .jplace file as input instead.""")
-    parser.add_argument("-c", dest="config_fname", default=None,
-            help="Config file name.")
+    parser.add_argument("-ranktest", dest="ranktest", action="store_true",
+            help="""Test for misplaced higher ranks.""")
     parser.add_argument("-tmpdir", dest="temp_dir", default=None,
             help="""Directory for temporary files.""")
+
     args = parser.parse_args()
+    if len(sys.argv) == 1: 
+        parser.print_help()
+        sys.exit()
+    check_args(args, parser)
     return args
 
 
-def check_args(args):    
-    if not args.ref_fname:
-        print("Must specify the reference in json format!\n")
-        print_options()
-        sys.exit()
-    
-    if not os.path.exists(args.ref_fname):
-        print("Input reference json file does not exists: %s" % args.ref_fname)
+def check_args(args, parser):    
+    if args.ref_fname:
+        if args.align_fname:
+            print("WARNING: -r and -s options are mutually exclusive! Your alignment file will be ignored.\n")
+        if args.taxonomy_fname:
+            print("WARNING: -r and -t options are mutually exclusive! Your taxonomy file will be ignored.\n")
+        if args.taxcode_name:
+            print("WARNING: -r and -x options are mutually exclusive! The taxonomic code from reference file will be used.\n")
+    elif not args.align_fname or not args.taxonomy_fname or not args.taxcode_name:
+        print("ERROR: either reference in JSON format or taxonomy, alignment and taxonomic code name must be provided:\n")
+        parser.print_help()
         sys.exit()
     
     if not os.path.exists(args.output_dir):
         print("Output directory does not exists: %s" % args.output_dir)
         sys.exit()
 
-    if args.jplace_fname and not os.path.exists(args.jplace_fname):
+    #check if taxonomy file exists
+    if args.taxonomy_fname and not os.path.isfile(args.taxonomy_fname):
+        print "ERROR: Taxonomy file not found: %s" % args.taxonomy_fname
+        sys.exit()
+
+    #check if alignment file exists
+    if args.align_fname and not os.path.isfile(args.align_fname):
+        print "ERROR: Alignment file not found: %s" % args.align_fname
+        sys.exit()
+
+    if args.ref_fname and not os.path.isfile(args.ref_fname):
+        print("Input reference json file does not exists: %s" % args.ref_fname)
+        sys.exit()
+    
+    if args.jplace_fname and not os.path.isfile(args.jplace_fname):
         print("EPA placement file does not exists: %s" % args.jplace_fname)
         sys.exit()
 
@@ -503,34 +554,59 @@ def check_args(args):
     
     if not (args.method == "1" or args.method == "2"):
         args.method == "1"
+
+    sativa_home = os.path.dirname(os.path.abspath(__file__))
+    if not args.config_fname:
+        args.config_fname = os.path.join(sativa_home, "sativa.cfg")
+    if not args.temp_dir:
+        args.temp_dir = os.path.join(sativa_home, "tmp")
+    if not args.output_name:
+        if args.taxonomy_fname:
+            base_fname = args.taxonomy_fname
+        else:
+            base_fname = args.ref_fname
+        args.output_name = os.path.splitext(base_fname)[0]
         
 def print_run_info(config, args):
-    config.log.info("Mislabels search is running with the following parameters:")
-    config.log.info(" Reference:........................%s", args.ref_fname)
-    if args.jplace_fname:
-        config.log.info(" EPA jplace file:..................%s", args.jplace_fname)
-    config.log.info(" Number of threads:................%d", config.num_threads)
-    config.log.info(" Min likelihood weight:............%f", args.min_lhw)
-    config.log.info(" Assignment method:................%s", args.method)
-#    print(" P-value for branch length test:...%f" % args.p_value)
-    config.log.info(" Output directory:.................%s", os.path.abspath(args.output_dir))
-    config.log.info("")
+    sativa_ver = "0.9"
+    sativa_date = "27-05-2015"
+    raxml_ver = "8.1.3"
+    print ""
+    config.log.info("SATIVA v%s released on %s. Last version: https://github.com/amkozlov/sativa", sativa_ver, sativa_date)
+    config.log.info("By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n", raxml_ver)
+    
+    if config.verbose:
+        config.log.info("Mislabels search is running with the following parameters:")
+        config.log.info(" Reference:........................%s", args.ref_fname)
+        if args.jplace_fname:
+            config.log.info(" EPA jplace file:..................%s", args.jplace_fname)
+        config.log.info(" Number of threads:................%d", config.num_threads)
+        config.log.info(" Min likelihood weight:............%f", args.min_lhw)
+        config.log.info(" Assignment method:................%s", args.method)
+    #    print(" P-value for branch length test:...%f" % args.p_value)
+        config.log.info(" Output directory:.................%s", os.path.abspath(args.output_dir))
+        config.log.info("")
 
 if __name__ == "__main__":
-    if len(sys.argv) == 1: 
-        print_options()
-        sys.exit()
-
     args = parse_args()
-    check_args(args)
     config = EpacConfig(args)
-    if config.verbose:
-        print_run_info(config, args)
+    print_run_info(config, args)
     
     start_time = time.time()
-   
+    
     t = LeaveOneTest(config, args)
 
+    if config.refjson_fname:
+        t.load_refjson(config.refjson_fname)
+    else:
+        refjson_fname = config.tmp_fname("%NAME%.refjson")
+        config.log.info("*** STEP 1: Building the reference tree using provided alignment and taxonomic annotations ***\n")
+        t.run_epa_trainer(refjson_fname, args)
+        t.load_refjson(refjson_fname)
+        if not config.debug:
+            FileUtils.remove_if_exists(refjson_fname)
+        config.log.info("*** STEP 2: Searching for mislabels ***\n")
+    
     t.run_test()
     if not config.debug:
         t.cleanup()

@@ -16,17 +16,17 @@ Currently, only Linux and OSX (Mac) systems are supported.
    If you have an up-to-date OS distribution (Ubuntu 12.04+, OSX 10.8+ etc.), there is nothing to worry about.
    In a cluster environment, you might need to select an appropriate compiler version, e.g.:
 
-   $ module load gcc/4.7.0
+   `module load gcc/4.7.0`
 
    (please refer to your cluster documentation for details)
 
 3. Run the installation script
 
-  $ ./install.sh
+  `./install.sh`
 
   If you are getting compilation errors, try to disable AVX:
 
-  $ ./install.sh --no-avx
+  `./install.sh --no-avx`
 
 Basic usage
 -----------
@@ -37,13 +37,14 @@ annotations (matched by sequence name). Furtermore, you must choose the nomencla
 
 Sample command line:
 
-  $ ./sativa.sh -s example/test.phy -t example/test.tax -x BAC
+  `cd example
+   ../sativa.py -s test.phy -t test.tax -x BAC`
 
 Output is a text file listing the identified mislabels, confidence scores and proposed corrections.
 
 For additional options, please refer to the online help: 
 
-  $ ./sativa.sh -h
+  `./sativa.py -h`
 
 
 GUI
@@ -67,4 +68,5 @@ https://groups.google.com/forum/?hl=en#!forum/raxml
 Citation
 --------
 
-Manuscript is in preparation
+Alexey M. Kozlov, Jiajie Zhang, Pelin Yilmaz, Frank Oliver Glöckner and Alexandros Stamatakis 
+"Phylogeny-aware Identification and Correction of Taxonomically Mislabeled Sequences". *In preparation.*
