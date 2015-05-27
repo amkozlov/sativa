@@ -37,8 +37,9 @@ annotations (matched by sequence name). Furtermore, you must choose the nomencla
 
 Sample command line:
 
-  `cd example
-   ../sativa.py -s test.phy -t test.tax -x BAC`
+```cd example
+   ../sativa.py -s test.phy -t test.tax -x BAC
+```
 
 Output is a text file listing the identified mislabels, confidence scores and proposed corrections.
 
@@ -68,5 +69,5 @@ https://groups.google.com/forum/?hl=en#!forum/raxml
 Citation
 --------
 
-Alexey M. Kozlov, Jiajie Zhang, Pelin Yilmaz, Frank Oliver Glöckner and Alexandros Stamatakis 
-"Phylogeny-aware Identification and Correction of Taxonomically Mislabeled Sequences". *In preparation.*
+Alexey M. Kozlov, Jiajie Zhang, Pelin Yilmaz, Frank Oliver Glöckner and Alexandros Stamatakis.
+**Phylogeny-aware Identification and Correction of Taxonomically Mislabeled Sequences.** *In preparation.*
