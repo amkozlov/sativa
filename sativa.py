@@ -15,6 +15,7 @@ from epac.raxml_util import RaxmlWrapper, FileUtils
 from epac.json_util import RefJsonParser, RefJsonChecker, EpaJsonParser
 from epac.taxonomy_util import TaxCode, Taxonomy
 from epac.classify_util import TaxTreeHelper,TaxClassifyHelper
+from epac.version import SATIVA_BUILD,SATIVA_RELEASE_DATE,SATIVA_RAXML_VER
 
 class LeaveOneTest:
     def __init__(self, config, args):
@@ -573,12 +574,9 @@ def check_args(args, parser):
         args.output_name = os.path.splitext(base_fname)[0]
         
 def print_run_info(config, args):
-    sativa_ver = "0.9"
-    sativa_date = "27-05-2015"
-    raxml_ver = "8.1.3"
     print ""
-    config.log.info("SATIVA v%s released on %s. Last version: https://github.com/amkozlov/sativa", sativa_ver, sativa_date)
-    config.log.info("By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n", raxml_ver)
+    config.log.info("SATIVA %s, released on %s. Last version: https://github.com/amkozlov/sativa", SATIVA_BUILD, SATIVA_RELEASE_DATE)
+    config.log.info("By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n", SATIVA_RAXML_VER)
     
     if config.verbose:
         config.log.info("Mislabels search is running with the following parameters:")
