@@ -28,6 +28,11 @@ class LeaveOneTest:
         self.premis_fname = self.cfg.out_fname("%NAME%.premis")
         self.misrank_fname = self.cfg.out_fname("%NAME%.misrank")
         self.stats_fname = self.cfg.out_fname("%NAME%.stats")
+        
+        if os.path.isfile(self.mis_fname):
+            print "\nERROR: Output file already exists: %s" % self.mis_fname
+            print "Please specify a different job name using -n or remove old output files."
+            sys.exit()
 
         self.tmp_refaln = config.tmp_fname("%NAME%.refaln")
         self.reftree_lbl_fname = config.tmp_fname("%NAME%_lbl.tre")
@@ -48,7 +53,7 @@ class LeaveOneTest:
         try:
             self.refjson = RefJsonParser(refjson_fname, ver="1.3")
         except ValueError:
-            print("Invalid json file format!")
+            print("ERROR: Invalid json file format!")
             sys.exit()
             
         #validate input json format 
@@ -577,42 +582,54 @@ def print_run_info(config, args):
     
     if config.verbose:
         config.log.info("Mislabels search is running with the following parameters:")
-        config.log.info(" Reference:........................%s", args.ref_fname)
+        if args.align_fname:
+            config.log.info(" Alignment:                        %s", args.align_fname)
+            config.log.info(" Taxonomy:                         %s", args.taxonomy_fname)
+        if args.ref_fname:
+            config.log.info(" Reference:                        %s", args.ref_fname)
         if args.jplace_fname:
-            config.log.info(" EPA jplace file:..................%s", args.jplace_fname)
-        config.log.info(" Number of threads:................%d", config.num_threads)
-        config.log.info(" Min likelihood weight:............%f", args.min_lhw)
-        config.log.info(" Assignment method:................%s", args.method)
-    #    print(" P-value for branch length test:...%f" % args.p_value)
-        config.log.info(" Output directory:.................%s", os.path.abspath(args.output_dir))
+            config.log.info(" EPA jplace file:                  %s", args.jplace_fname)
+        #config.log.info(" Min likelihood weight:            %f", args.min_lhw)
+#        config.log.info(" Assignment method:                %s", args.method)
+    #    print(" P-value for branch length test:   %f" % args.p_value)
+        config.log.info(" Output directory:                 %s", os.path.abspath(args.output_dir))
+        config.log.info(" Job name / output files prefix:   %s", config.name)
+        config.log.info(" Number of threads:                %d", config.num_threads)
         config.log.info("")
 
 if __name__ == "__main__":
     args = parse_args()
     config = EpacConfig(args)
-    print_run_info(config, args)
     
     start_time = time.time()
+    trainer_time = 0
     
     t = LeaveOneTest(config, args)
+    print_run_info(config, args)
 
     if config.refjson_fname:
         t.load_refjson(config.refjson_fname)
     else:
         refjson_fname = config.tmp_fname("%NAME%.refjson")
         config.log.info("*** STEP 1: Building the reference tree using provided alignment and taxonomic annotations ***\n")
+        tr_start_time = time.time() 
         t.run_epa_trainer(refjson_fname, args)
+        trainer_time = time.time() - tr_start_time
         t.load_refjson(refjson_fname)
         if not config.debug:
             FileUtils.remove_if_exists(refjson_fname)
         config.log.info("*** STEP 2: Searching for mislabels ***\n")
     
+    l1out_start_time = time.time()
+    
     t.run_test()
     if not config.debug:
         t.cleanup()
+        
+    l1out_time = time.time() - l1out_start_time
 
     config.log.info("\nResults were saved to: %s", os.path.abspath(t.mis_fname))
     config.log.info("Execution log was saved to: %s\n", os.path.abspath(config.log_fname))
 
     elapsed_time = time.time() - start_time
-#    print "Done! (%.0f s)\n" % elapsed_time
+    config.log.info("Analysis completed successfully, elapsed time: %.0f seconds (%.0fs reftree, %.0fs leave-one-out)\n", elapsed_time, trainer_time, l1out_time)

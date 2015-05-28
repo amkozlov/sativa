@@ -42,7 +42,8 @@ Sample command line:
    ../sativa.py -s test.phy -t test.tax -x BAC
 ```
 
-Output is a text file listing the identified mislabels, confidence scores and proposed corrections.
+Output is a text file which contains a list of identified mislabels, along with the corresponding 
+confidence scores and proposed taxonomic corrections.
 
 For additional options, please refer to the online help: 
 
