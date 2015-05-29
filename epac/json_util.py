@@ -38,114 +38,56 @@ class RefJsonChecker:
         else:
             self.jdata = jdata
     
-    def valid(self, ver = "1.1"):
+    def check_field(self, fname, ftype, fvals=None, fopt=False):
+        if fname in self.jdata:
+            field = self.jdata[fname]
+            if isinstance(field, ftype):
+                if not fvals or field in fvals:
+                    return True
+                else:
+                    self.error = "Invalid value of field '%s': %s" % fname, repr(field)
+                    return False
+            else:
+              self.error = "Field '%s' has a wrong type: %s (expected: %s)" % fname, type(field).__name__, ftype.__name__
+              return False
+        else:
+            if fopt:
+                return True
+            else:
+                self.error = "Field not found: %s" % fname
+                return False
+    
+    def validate(self, ver = "1.1"):
         nver = float(ver)
-
-        #tree
-        if "tree" in self.jdata:
-            tree = self.jdata["tree"]
-            if not isinstance(tree, unicode):
-                print("Tree is")
-                print(type(tree).__name__)
-                return False
-        else:
-            return False
         
-        #raxmltree
-        if "raxmltree" in self.jdata:
-            tree = self.jdata["raxmltree"]
-            if not isinstance(tree, unicode):
-                return False
-        else:
-            return False
-            
-        #rate:
-        if "rate" in self.jdata:
-            rate = self.jdata["rate"]
-            if not isinstance(rate, float):
-                return False
-        else:
-            return False
-            
-        #node_height
-        if "node_height" in self.jdata:
-            node_height = self.jdata["node_height"]
-            if not isinstance(node_height, dict):
-                return False
-        else:
-            return False
-            
-        #taxonomy
-        if "taxonomy" in self.jdata:
-            taxonomy = self.jdata["taxonomy"]
-            if not isinstance(taxonomy, dict):
-                return False
-        else:
-            return False
+        self.error = None
 
-        #origin_taxonomy
-        if "origin_taxonomy" in self.jdata:
-            origin_taxonomy = self.jdata["origin_taxonomy"]
-            if not isinstance(origin_taxonomy, dict):
-                return False
-        else:
-            return False
-
-        #sequences
-        if "sequences" in self.jdata:
-            sequences = self.jdata["sequences"]
-            if not isinstance(sequences, list):
-                return False
-        else:
-            return False
-            
-        #hmm_profile
-        if "hmm_profile" in self.jdata:
-            hmm_profile = self.jdata["hmm_profile"]
-            if not isinstance(hmm_profile, list):
-                return False
-        elif nver < 1.1:
-            return False
-
-        #binary_model
-        if "binary_model" in self.jdata:
-            model_str = self.jdata["binary_model"]
-            if not isinstance(model_str, unicode):
-                return False
-        else:
-            return False
-
+        valid = self.check_field("tree", unicode) \
+                and self.check_field("raxmltree", unicode) \
+                and self.check_field("rate", float) \
+                and self.check_field("node_height", dict) \
+                and self.check_field("taxonomy", dict) \
+                and self.check_field("origin_taxonomy", dict) \
+                and self.check_field("sequences", list) \
+                and self.check_field("binary_model", unicode) \
+                and self.check_field("hmm_profile", list, fopt=True) 
+                
+        # check v1.1 fields, if needed
         if nver >= 1.1:
-            #ratehet_model
-            if "ratehet_model" in self.jdata:
-                ratehet_str = self.jdata["ratehet_model"]
-                if not isinstance(ratehet_str, unicode):
-                    return False
-                elif ratehet_str not in ["GTRGAMMA", "GTRCAT"]:
-                    return False
-            else:
-                return False
+            valid = valid and \
+                    self.check_field("ratehet_model", unicode, ["GTRGAMMA", "GTRCAT"])
 
+        # check v1.2 fields, if needed
         if nver >= 1.2:
-            if "tax_tree" in self.jdata:
-                tree = self.jdata["tax_tree"]
-                if not isinstance(tree, unicode):
-                    print("Tree is")
-                    print(type(tree).__name__)
-                    return False
-            else:
-                return False
-        
-        if nver >= 1.3:
-            #taxcode
-            if "taxcode" in self.jdata:
-                taxcode_str = self.jdata["taxcode"]
-                if not isinstance(taxcode_str, unicode):
-                    return False
-                elif taxcode_str.lower() not in TaxCode.TAX_CODE_MAP:
-                    return False
+            valid = valid and \
+                    self.check_field("tax_tree", unicode)
 
-        return True
+        # check v1.3 fields, if needed
+        if nver >= 1.3:
+            valid = valid and \
+                    self.check_field("taxcode", unicode, TaxCode.TAX_CODE_MAP)
+        
+        return (valid, self.error)
 
 class RefJsonParser:
     """This class parses the EPA Classifier reference json file"""
@@ -155,9 +97,7 @@ class RefJsonParser:
         
     def validate(self):
         jc = RefJsonChecker(jdata = self.jdata)
-        if not jc.valid(self.version):
-            print("Invalid reference database format")
-            sys.exit()
+        return jc.validate(self.version)
     
     def get_rate(self):
         return self.jdata["rate"]

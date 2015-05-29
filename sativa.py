@@ -55,10 +55,14 @@ class LeaveOneTest:
             self.refjson = RefJsonParser(refjson_fname, ver="1.3")
         except ValueError:
             print("ERROR: Invalid json file format!")
-            sys.exit()
+            sys.exit(-1)
             
         #validate input json format 
-        self.refjson.validate()
+        (valid, err) = self.refjson.validate()
+        if not valid:
+            self.cfg.log.error("ERROR: Parsing reference JSON file failed:\n%s", err)
+            sys.exit(-1)
+        
         self.rate = self.refjson.get_rate()
         self.node_height = self.refjson.get_node_height()
         self.origin_taxonomy = self.refjson.get_origin_taxonomy()
