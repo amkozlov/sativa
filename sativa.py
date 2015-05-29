@@ -9,13 +9,18 @@ from operator import itemgetter
 from subprocess import call
 
 from epac.ete2 import Tree, SeqGroup
-from epac.argparse import ArgumentParser
+from epac.argparse import ArgumentParser,RawDescriptionHelpFormatter
 from epac.config import EpacConfig
 from epac.raxml_util import RaxmlWrapper, FileUtils
 from epac.json_util import RefJsonParser, RefJsonChecker, EpaJsonParser
 from epac.taxonomy_util import TaxCode, Taxonomy
 from epac.classify_util import TaxTreeHelper,TaxClassifyHelper
 from epac.version import SATIVA_BUILD,SATIVA_RELEASE_DATE,SATIVA_RAXML_VER
+
+SATIVA_INFO = \
+"""SATIVA %s, released on %s. Last version: https://github.com/amkozlov/sativa
+By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"""\
+% (SATIVA_BUILD, SATIVA_RELEASE_DATE, SATIVA_RAXML_VER)
 
 class LeaveOneTest:
     def __init__(self, config, args):
@@ -213,6 +218,28 @@ class LeaveOneTest:
                 real_lvl = mis_rec["real_level"]
                 self.rank_mislabels_cnt[real_lvl] += 1
     
+    def write_stats(self, toFile=False):
+        self.cfg.log.info("Mislabels counts by ranks:")
+        seq_sum = 0
+        rank_sum = 0
+        stats = []
+        for i in range(1, len(self.mislabels_cnt)):
+            rname = self.tax_code.rank_level_name(i)[0].ljust(10)
+            if self.mislabels_cnt[i] > 0:
+                seq_sum += self.mislabels_cnt[i]
+#                    output = "%s:\t%d" % (rname, seq_sum)
+                output = "%s:\t%d" % (rname, self.mislabels_cnt[i])
+                if self.ranktest:
+                    rank_sum += self.rank_mislabels_cnt[i]
+                    output += "\t%d" % rank_sum
+                self.cfg.log.info(output) 
+                stats.append(output)
+
+        if toFile:
+            with open(self.stats_fname, "w") as fo_stat:
+                for line in stats:
+                    fo_stat.write(line + "\n")
+    
     def write_mislabels(self, final=True):
         if final:
             out_fname = self.mis_fname
@@ -250,22 +277,9 @@ class LeaveOneTest:
                     fo_all.write(output)
                     if self.cfg.verbose:
                         print(output) 
+                        
+        self.write_stats()
 
-        self.cfg.log.info("Mislabels counts by ranks:")
-        with open(self.stats_fname, "w") as fo_stat:
-            seq_sum = 0
-            rank_sum = 0
-            for i in range(1, len(self.mislabels_cnt)):
-                rname = self.tax_code.rank_level_name(i)[0].ljust(10)
-                if self.mislabels_cnt[i] > 0:
-                    seq_sum += self.mislabels_cnt[i]
-#                    output = "%s:\t%d" % (rname, seq_sum)
-                    output = "%s:\t%d" % (rname, self.mislabels_cnt[i])
-                    if self.ranktest:
-                        rank_sum += self.rank_mislabels_cnt[i]
-                        output += "\t%d" % rank_sum
-                    fo_stat.write(output + "\n")
-                    self.cfg.log.info(output) 
        
     def get_orig_ranks(self, seq_name):
         nodes = self.tax_tree.get_leaves_by_name(seq_name)
@@ -473,11 +487,13 @@ class LeaveOneTest:
             FileUtils.remove_if_exists(self.refalign_fname)
 
 def parse_args():
-    parser = ArgumentParser(description="Find putative mislabeled/misplaced sequences in a taxonomy.",
-    epilog="Example: python sativa.py -s example/test.phy -t example/test.tax -x BAC")
+    parser = ArgumentParser(usage="%(prog)s -s ALIGNMENT -t TAXONOMY -x {BAC,BOT,ZOO,VIR} [options]",
+    description=SATIVA_INFO,
+    epilog="Example: sativa.py -s example/test.phy -t example/test.tax -x BAC",
+    formatter_class=RawDescriptionHelpFormatter)
     parser.add_argument("-s", dest="align_fname",
-            help="""Reference alignment file. Sequences must be aligned, their IDs must correspond to those
-in taxonomy file.""")
+            help="""Reference alignment file (PHYLIP or FASTA). Sequences must be aligned, 
+            their IDs must correspond to those in taxonomy file.""")
     parser.add_argument("-t", dest="taxonomy_fname",
             help="""Reference taxonomy file.""")
     parser.add_argument("-x", dest="taxcode_name", choices=["bac", "bot", "zoo", "vir"], type = str.lower,
@@ -503,9 +519,8 @@ in taxonomy file.""")
                     measure of the assignment, assignments below this value will be discarded. 
                     Default: 0 to output all possbile assignments.""")
     parser.add_argument("-m", dest="method", default="1",
-            help="""Assignment method 1 or 2
-                    1: Max sum likelihood (default)
-                    2: Max likelihood placement""")
+            help="""Taxonomic assignment method: 1=Max sum of likelihoods (default),
+                    2=Max likelihood placement""")
 #    parser.add_argument("-p", dest="p_value", type=float, default=0.001,
 #            help="""P-value for branch length Erlang test. Default: 0.001\n""")
 
@@ -579,8 +594,7 @@ def check_args(args, parser):
         
 def print_run_info(config, args):
     print ""
-    config.log.info("SATIVA %s, released on %s. Last version: https://github.com/amkozlov/sativa", SATIVA_BUILD, SATIVA_RELEASE_DATE)
-    config.log.info("By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n", SATIVA_RAXML_VER)
+    config.log.info(SATIVA_INFO)
     
     if config.verbose:
         config.log.info("Mislabels search is running with the following parameters:")
