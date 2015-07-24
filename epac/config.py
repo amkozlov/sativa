@@ -7,6 +7,7 @@ import shutil
 import datetime
 import time
 import logging
+import multiprocessing
 import ConfigParser
 
 class DefaultedConfigParser(ConfigParser.SafeConfigParser):
@@ -69,9 +70,13 @@ class EpacConfig:
         self.raxml_outdir = self.temp_dir
         self.raxml_outdir_abs = os.path.abspath(self.raxml_outdir)
         self.set_defaults()
-        if args.config_fname:
-            self.config_path = os.path.dirname(os.path.abspath(args.config_fname))
-            self.read_from_file(args.config_fname)
+        
+        if not args.config_fname:
+            args.config_fname = os.path.join(self.epac_home, "sativa.cfg")
+        
+        self.config_path = os.path.dirname(os.path.abspath(args.config_fname))
+        self.read_from_file(args.config_fname)
+        
         # command line setting has preference over config file and default
         if args.num_threads:
             self.num_threads = args.num_threads        
@@ -97,7 +102,7 @@ class EpacConfig:
         self.epa_use_heuristic = "AUTO"
         self.epa_heur_rate = 0.01
         self.min_confidence = 0.2
-        self.num_threads = 2
+        self.num_threads = multiprocessing.cpu_count()
         self.compress_patterns = False
         
     def init_logger(self):
