@@ -95,7 +95,7 @@ class LeaveOneTest:
         
     def run_epa_trainer(self, refjson_fname, args):
         sativa_home = os.path.dirname(os.path.abspath(__file__))
-        trainer_script = os.path.join(sativa_home, "epac", "epa_trainer.py")
+        trainer_script = os.path.join(sativa_home, "epa_trainer.py")
         call_str = [trainer_script]
         call_str += ["-s", args.align_fname]
         call_str += ["-t", args.taxonomy_fname]

@@ -7,15 +7,15 @@ import datetime
 import time
 import logging
 
-from ete2 import Tree, SeqGroup
-from argparse import ArgumentParser,RawTextHelpFormatter
-from config import EpacConfig,EpacTrainerConfig
-from raxml_util import RaxmlWrapper, FileUtils
-from taxonomy_util import Taxonomy, TaxTreeBuilder
-from json_util import RefJsonBuilder
-from erlang import tree_param 
-from msa import hmmer
-from classify_util import TaxTreeHelper
+from epac.ete2 import Tree, SeqGroup
+from epac.argparse import ArgumentParser,RawTextHelpFormatter
+from epac.config import EpacConfig,EpacTrainerConfig
+from epac.raxml_util import RaxmlWrapper, FileUtils
+from epac.taxonomy_util import Taxonomy, TaxTreeBuilder
+from epac.json_util import RefJsonBuilder
+from epac.erlang import tree_param 
+from epac.msa import hmmer
+from epac.classify_util import TaxTreeHelper
 
 class RefTreeBuilder:
     def __init__(self, config): 
@@ -447,21 +447,21 @@ class RefTreeBuilder:
         self.cfg.log.debug("shared rank names before training: %s", repr(self.taxonomy.get_common_ranks()))
         self.cfg.log.debug("shared rank names after  training: %s\n", repr(self.mono_index()))
         
-        self.cfg.log.info("=========> Saving the reference JSON file ...\n")
+        self.cfg.log.info("=========> Saving the reference JSON file: %s\n" % self.cfg.refjson_fname)
         self.write_json()
         elapsed_time = time.time() - start_time
 #        self.cfg.log.info("\n***********  Done! (%.0f s) **********\n", elapsed_time)
 
 def parse_args():
     parser = ArgumentParser(description="Build a reference tree for EPA taxonomic placement.",
-    epilog="Example: ./epa_trainer.py -t example/training_tax.txt -s example/training_seq.fa -r example/ref.json",
+    epilog="Example: ./epa_trainer.py -t example/training_tax.txt -s example/training_seq.fa -n myref",
     formatter_class=RawTextHelpFormatter)
     parser.add_argument("-t", dest="taxonomy_fname", required=True,
             help="""Reference taxonomy file.""")
     parser.add_argument("-s", dest="align_fname", required=True,
             help="""Reference alignment file. Sequences must be aligned, their IDs must correspond to those
 in taxonomy file.""")
-    parser.add_argument("-r", dest="ref_fname", required=True,
+    parser.add_argument("-r", dest="ref_fname",
             help="""Reference output file. It will contain reference alignment, phylogenetic tree and other
 information needed for taxonomic placement of query sequences.""")
     parser.add_argument("-T", dest="num_threads", type=int, default=None,
@@ -520,6 +520,12 @@ def check_args(args):
     if not os.path.isfile(args.align_fname):
         print "ERROR: Alignment file not found: %s" % args.align_fname
         sys.exit()
+        
+    if not args.output_name:
+        args.output_name = args.align_fname
+
+    if not args.ref_fname:
+        args.ref_fname = "%s.refjson" % args.output_name
 
     #check if reference json file already exists
     if os.path.isfile(args.ref_fname):
@@ -530,11 +536,40 @@ def check_args(args):
     #check if reference file can be created
     try:
         f = open(args.ref_fname, "w")
+        f.close()
+        os.remove(args.ref_fname)
     except:
         print "ERROR: cannot create output file: %s" % args.ref_fname
         print "Please check if directory %s exists and you have write permissions for it." % os.path.split(os.path.abspath(args.ref_fname))[0]
         sys.exit()
 
+def which(program, custom_path=[]):
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        path_list = custom_path
+        path_list += os.environ["PATH"].split(os.pathsep)
+        for path in path_list:
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None        
+    
+def check_dep(config):           
+    if not config.no_hmmer:
+        if not which("hmmalign", [config.hmmer_home]):
+            print "ERROR: HMMER not found!"
+            print "Please either specify path to HMMER executables in the config file" 
+            print "or call this script with -no-hmmer option to skip building HMMER profile." 
+            sys.exit()
+        
 # -------
 # MAIN
 # -------
@@ -542,6 +577,7 @@ if __name__ == "__main__":
     args = parse_args()
     check_args(args)
     config = EpacTrainerConfig(args)
+    check_dep(config)
     builder = RefTreeBuilder(config)
     builder.invocation_epac = " ".join(sys.argv)
     builder.build_ref_tree()
