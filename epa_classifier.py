@@ -33,6 +33,11 @@ class EpaClassifier:
         self.tmpquery = config.tmp_fname("%NAME%.tmpquery")
         self.noalign = config.tmp_fname("%NAME%.noalign")
         self.seqs = None
+        
+        assign_fname = args.output_name + ".assignment.txt"
+        self.out_assign_fname = os.path.join(args.output_dir, assign_fname)
+        jplace_fname = args.output_name + ".jplace"
+        self.out_jplace_fname = os.path.join(args.output_dir, jplace_fname)
 
         try:
             self.refjson = RefJsonParser(config.refjson_fname)
@@ -153,7 +158,7 @@ class EpaClassifier:
             return ss[:-1] + "\t" + css[:-1]
 
 
-    def classify(self, query_fname, fout = None, method = "1", minlw = 0.0, pv = 0.02, minp = 0.9, ptp = False):
+    def classify(self, query_fname, method = "1", minlw = 0.0, pv = 0.02, minp = 0.9, ptp = False):
         if self.jplace_fname:
             jp = EpaJsonParser(self.jplace_fname)
         else:        
@@ -181,13 +186,15 @@ class EpaClassifier:
             reduced_align_fname = raxml.reduce_alignment(self.epa_alignment)
 
             jp = raxml.run_epa(job_name, reduced_align_fname, reftree_fname, optmod_fname)
+            
+            raxml.copy_epa_jplace(job_name, self.out_jplace_fname, move=True)
         
         self.cfg.log.info("Assigning taxonomic labels based on EPA placements...\n")
  
         placements = jp.get_placement()
         
-        if fout:
-            fo = open(fout, "w")
+        if self.out_assign_fname:
+            fo = open(self.out_assign_fname, "w")
         else:
             fo = None
         
@@ -452,14 +459,10 @@ def check_args(args):
     query_dir, query_fname = os.path.split(os.path.abspath(input_fname))
     if not args.output_dir:
         args.output_dir = query_dir
-
-    if args.output_name:
-        out_fname = args.output_name + ".assignment.txt"
-    else:
-        out_fname = query_fname + ".assignment.txt"
-
-    args.output_fname = args.output_dir + "/" + out_fname
-
+        
+    if not args.output_name:
+        args.output_name = query_fname
+        
     if args.min_lhw < 0 or args.min_lhw > 1.0:
          args.min_lhw = 0.0
     
@@ -504,11 +507,11 @@ if __name__ == "__main__":
     start_time = time.time()
    
     ec = EpaClassifier(config, args)
-    ec.classify(query_fname = args.query_fname, fout = args.output_fname, method = args.method, minlw = args.min_lhw, pv = args.p_value, minp = args.minalign, ptp = args.ptp)
+    ec.classify(query_fname = args.query_fname, method = args.method, minlw = args.min_lhw, pv = args.p_value, minp = args.minalign, ptp = args.ptp)
     if not config.debug:
         ec.cleanup()
         
-    config.log.info("Results were saved to: %s", os.path.abspath(args.output_fname))
+    config.log.info("Results were saved to: %s", os.path.abspath(ec.out_assign_fname))
     config.log.info("Execution log was saved to: %s\n", os.path.abspath(config.log_fname))
 
     elapsed_time = time.time() - start_time

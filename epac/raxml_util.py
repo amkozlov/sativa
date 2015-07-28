@@ -211,3 +211,17 @@ class RaxmlWrapper:
         src_fname = self.make_raxml_fname("labelledTree", job_name)
         shutil.copy(src_fname, dst_fname)
 
+    def copy_epa_jplace(self, job_name, dst_fname, mode="epa", move=False):
+        if mode == "l1o_seq":
+            result_file_stem = "leaveOneOutResults"
+        elif mode == "l1o_subtree":
+            result_file_stem = "subtreePlacement"
+        elif mode == "epa":
+            result_file_stem = "portableTree"
+        else:
+            return
+        src_fname = self.make_raxml_fname(result_file_stem, job_name) + ".jplace"
+        if move:
+            shutil.move(src_fname, dst_fname)
+        else:
+            shutil.copy(src_fname, dst_fname)
