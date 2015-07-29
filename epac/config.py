@@ -60,32 +60,41 @@ class EpacConfig:
         self.verbose = args.verbose
         self.debug = args.debug
         self.refjson_fname = args.ref_fname        
+        
+        timestamp = "%d" % (time.time()*1000) #datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        if args.output_name:
+            self.name = args.output_name
+        else:
+            self.name = timestamp
+
         self.basepath = os.path.dirname(os.path.abspath(__file__))
         self.epac_home = os.path.abspath(os.path.join(self.basepath, os.pardir)) + "/"
         self.output_dir = args.output_dir
+
         if args.temp_dir:
-            self.temp_dir = args.temp_dir + "/"
+            self.temp_dir = args.temp_dir
         else:
-            self.temp_dir = self.epac_home + "/tmp/"
+            self.temp_dir = os.path.join(self.epac_home, "tmp")
+        self.temp_dir = os.path.join(self.temp_dir, timestamp)
+            
         self.raxml_outdir = self.temp_dir
         self.raxml_outdir_abs = os.path.abspath(self.raxml_outdir)
+
         self.set_defaults()
+
+        self.init_logger()
         
         if not args.config_fname:
             args.config_fname = os.path.join(self.epac_home, "sativa.cfg")
         
         self.config_path = os.path.dirname(os.path.abspath(args.config_fname))
         self.read_from_file(args.config_fname)
-        
+
         # command line setting has preference over config file and default
         if args.num_threads:
             self.num_threads = args.num_threads        
         self.check_raxml()    
-        if args.output_name:
-            self.name = args.output_name
-        else:
-            self.name = "%d" % (time.time()*1000) #datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.init_logger()
+        os.mkdir(self.temp_dir)
 
     def set_defaults(self):
         self.muscle_home = self.epac_home + "/epac/bin" + "/"
@@ -107,7 +116,7 @@ class EpacConfig:
         
     def init_logger(self):
         self.log_fname = self.out_fname("%NAME%.log")
-        if self.verbose:
+        if self.verbose or self.debug:
            log_lvl = logging.DEBUG
         else:
            log_lvl = logging.INFO
@@ -124,11 +133,10 @@ class EpacConfig:
         self.log.addHandler(ch)
 
         # add console handler
-        fh = logging.FileHandler(self.log_fname)
+        fh = logging.FileHandler(self.log_fname, mode='w')
         fh.setLevel(log_lvl)
         fh.setFormatter(formatter)        
         self.log.addHandler(fh)
-        
 
     def resolve_auto_settings(self, tree_size):
         if self.raxml_model == "AUTO":
@@ -163,11 +171,9 @@ class EpacConfig:
             # if raxml_home is empty, raxml binary must be on PATH; otherwise check if file exists
             if self.raxml_home:  
                 if not os.path.isdir(self.raxml_home):
-                    print "RAxML home directory not found: %s" % self.raxml_home
-                    sys.exit()
+                    self.exit_user_error("RAxML home directory not found: %s" % self.raxml_home)
                 elif not os.path.isfile(self.raxml_exec_full):
-                    print "RAxML executable not found: %s" % self.raxml_exec_full
-                    sys.exit()
+                    self.exit_user_error("RAxML executable not found: %s" % self.raxml_exec_full)
         else:
             self.raxml_remote_call = True
         self.raxml_cmd = [self.raxml_exec_full, "-p", "12345", "-w", self.raxml_outdir_abs]
@@ -176,8 +182,7 @@ class EpacConfig:
         
     def read_from_file(self, config_fname):
         if not os.path.exists(config_fname):
-            print "ERROR: Config file not found: " + config_fname
-            sys.exit()
+            self.exit_user_error("ERROR: Config file not found: %s" % config_fname)
 
         parser = DefaultedConfigParser() #ConfigParser.SafeConfigParser()
         parser.read(config_fname)
@@ -216,6 +221,21 @@ class EpacConfig:
 
     def out_fname(self, fname):
         return os.path.join(self.output_dir, self.subst_name(fname))
+        
+    def clean_tempdir(self):
+        if not self.debug and os.path.isdir(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
+    
+    def exit_fatal_error(self, msg=None):
+        if msg:
+            self.log.error(msg)
+        sys.exit(13)    
+
+    def exit_user_error(self, msg=None):
+        if msg:
+            self.log.error(msg)
+        self.clean_tempdir()
+        sys.exit(14)    
     
 class EpacTrainerConfig(EpacConfig):
     
@@ -263,3 +283,30 @@ class EpacTrainerConfig(EpacConfig):
 
         return clade_list
         
+class SativaConfig(EpacTrainerConfig):
+    
+    def __init__(self, args):
+        args.no_hmmer = True
+        args.compress_patterns = True
+        args.dup_rank_names = "ignore"
+        args.wrong_rank_count = "ignore"
+        args.taxassign_method = "1"
+
+        EpacTrainerConfig.__init__(self, args)
+
+        self.taxassign_method = args.taxassign_method
+        self.minlw = args.min_lhw
+        self.ranktest = args.ranktest
+        self.jplace_fname = args.jplace_fname
+
+        if self.refjson_fname:
+            self.load_refjson = True
+        else:
+            self.load_refjson = False
+            self.refjson_fname = self.tmp_fname("%NAME%.refjson")
+        
+    def set_defaults(self):
+        EpacTrainerConfig.set_defaults(self)
+
+    def read_from_file(self, config_fname):
+        parser = EpacTrainerConfig.read_from_file(self, config_fname)

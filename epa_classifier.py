@@ -42,8 +42,7 @@ class EpaClassifier:
         try:
             self.refjson = RefJsonParser(config.refjson_fname)
         except ValueError:
-            print("Invalid json file format!")
-            sys.exit()
+            self.cfg.exit_user_error("Invalid json file format: %s" % config.refjson_fname)
         #validate input json format 
         self.refjson.validate()
         self.bid_taxonomy_map = self.refjson.get_bid_tanomomy_map()
@@ -53,13 +52,22 @@ class EpaClassifier:
         self.cfg.compress_patterns = self.refjson.get_pattern_compression()
 
         self.classify_helper = TaxClassifyHelper(self.cfg, self.bid_taxonomy_map, args.p_value, self.rate, self.node_height)
+        
+    def require_muscle(self):
+        basepath = os.path.dirname(os.path.abspath(__file__))
+        if not os.path.exists(basepath + "/epac/bin/muscle"):
+            errmsg = "The pipeline uses MUSCLE to merge alignments, please download the programm from:\n" + \
+                     "http://www.drive5.com/muscle/downloads.htm\n" + \
+                     "and specify path to your installation in the config file (sativa.cfg)\n"
+            self.cfg.exit_user_error(errmsg)
 
-    def cleanup(self):
-        FileUtils.remove_if_exists(self.tmp_refaln)
-        FileUtils.remove_if_exists(self.epa_alignment)
-        FileUtils.remove_if_exists(self.hmmprofile)
-        FileUtils.remove_if_exists(self.tmpquery)
-        FileUtils.remove_if_exists(self.noalign)
+    def require_hmmer(self):
+        basepath = os.path.dirname(os.path.abspath(__file__))
+        if not os.path.exists(basepath + "/epac/bin/hmmbuild") or not os.path.exists(basepath + "/epac/bin/hmmalign"):
+            errmsg = "The pipeline uses HAMMER to align the query seqeunces, please download the programm from:\n" + \
+                     "http://hmmer.janelia.org/\n" + \
+                     "and specify path to your installation in the config file (sativa.cfg)\n"
+            self.cfg.exit_user_error(errmsg)
 
     def align_to_refenence(self, noalign, minp = 0.9):
         refaln = self.refjson.get_alignment(fout = self.tmp_refaln)
@@ -91,9 +99,7 @@ class EpaClassifier:
             except:
                 self.cfg.log.debug("Guessing input format: not " + fmt)
         if self.seqs == None:
-            print("Invalid input file format!")
-            print("The supported input formats are fasta and phylip")
-            sys.exit()
+            self.cfg.exit_user_error("Invalid input file format: %s\nThe supported input formats are fasta and phylip" % query_fname)
 
         if self.ignore_refalign:
             self.cfg.log.info("Assuming query file contains reference sequences, skipping the alignment step...\n")
@@ -129,16 +135,15 @@ class EpaClassifier:
                 self.merge_alignment(self.seqs)
             else:
                 self.cfg.log.info("Merging query alignment with reference alignment using MUSCLE")
-                require_muscle()
+                self.require_muscle()
                 refaln = self.refjson.get_alignment(fout = self.tmp_refaln)
                 m = muscle(self.cfg)
                 self.epa_alignment = m.merge(refaln, self.tmpquery)
         else:
             self.cfg.log.info("Query sequences are not aligned")
             self.cfg.log.info("Align query sequences to the reference alignment using HMMER")
-            require_hmmer()
+            self.require_hmmer()
             self.align_to_refenence(self.noalign, minp = minp)
-        
 
     def print_ranks(self, rks, confs, minlw = 0.0):
         ss = ""
@@ -275,13 +280,6 @@ class EpaClassifier:
                 fo2.close()
         #############################################
         
-        if not self.jplace_fname:
-            if not self.cfg.debug:
-                raxml.cleanup(job_name)
-                FileUtils.remove_if_exists(reduced_align_fname)
-                FileUtils.remove_if_exists(reftree_fname)
-                FileUtils.remove_if_exists(optmod_fname)
-
     def novelty_check(self, place_edge, ranks, lws, minlw):
         """If the taxonomic assignment is not assigned to the genus level, 
         we need to check if it is due to the incomplete reference taxonomy or 
@@ -352,26 +350,6 @@ def print_options():
     print("    -T numthread                   Specify the number of CPUs.\n")
     print("    -v                             Print the results on screen.\n")
     print("    --ptp                          Delimit species with PTP.\n")
-
-
-def require_muscle():
-    basepath = os.path.dirname(os.path.abspath(__file__))
-    if not os.path.exists(basepath + "/epac/bin/muscle"):
-        print("The pipeline uses MUSCLE to merge alignment,")
-        print("please download the programm from:")
-        print("http://www.drive5.com/muscle/downloads.htm")
-        print("Rename the executable to usearch and put it to epac/bin/  \n")
-        sys.exit() 
-
-
-def require_hmmer():
-    basepath = os.path.dirname(os.path.abspath(__file__))
-    if not os.path.exists(basepath + "/epac/bin/hmmbuild") or not os.path.exists(basepath + "/epac/bin/hmmalign"):
-        print("The pipeline uses HAMMER to align the query seqeunces,")
-        print("please download the programm from:")
-        print("http://hmmer.janelia.org/")
-        print("Copy the executables hmmbuild and hmmalign to bin/  \n")
-        sys.exit()
 
 
 def parse_args():
@@ -475,8 +453,8 @@ def check_args(args):
 
 def print_run_info(config, args):
     config.log.info("\nEPA-classifier running with the following parameters:")
-    config.log.info(" Reference:......................%s" % args.ref_fname)
-    config.log.info(" Query:..........................%s" % args.query_fname)
+    config.log.info(" Reference:......................%s" % os.path.abspath(args.ref_fname))
+    config.log.info(" Query:..........................%s" % os.path.abspath(args.query_fname))
     config.log.info(" Min percent of alignment sites..%s" % args.minalign)
     config.log.info(" Min likelihood weight:..........%f" % args.min_lhw)
     config.log.info(" Assignment method:..............%s" % args.method)
@@ -485,6 +463,9 @@ def print_run_info(config, args):
 #    print("Result will be written to:")
 #    print(args.output_fname)
     config.log.info("")
+
+    if config.debug:
+        config.log.debug("Running in DEBUG mode, temp files will be saved to: %s\n", os.path.abspath(config.temp_dir))
 
 
 if __name__ == "__main__":
@@ -508,9 +489,9 @@ if __name__ == "__main__":
    
     ec = EpaClassifier(config, args)
     ec.classify(query_fname = args.query_fname, method = args.method, minlw = args.min_lhw, pv = args.p_value, minp = args.minalign, ptp = args.ptp)
-    if not config.debug:
-        ec.cleanup()
-        
+    
+    config.clean_tempdir()
+    
     config.log.info("Results were saved to: %s", os.path.abspath(ec.out_assign_fname))
     config.log.info("Execution log was saved to: %s\n", os.path.abspath(config.log_fname))
 

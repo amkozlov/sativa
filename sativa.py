@@ -10,12 +10,13 @@ from subprocess import call
 
 from epac.ete2 import Tree, SeqGroup
 from epac.argparse import ArgumentParser,RawDescriptionHelpFormatter
-from epac.config import EpacConfig
+from epac.config import SativaConfig,EpacConfig
 from epac.raxml_util import RaxmlWrapper, FileUtils
 from epac.json_util import RefJsonParser, RefJsonChecker, EpaJsonParser
 from epac.taxonomy_util import TaxCode, Taxonomy
 from epac.classify_util import TaxTreeHelper,TaxClassifyHelper
 from epac.version import SATIVA_BUILD,SATIVA_RELEASE_DATE,SATIVA_RAXML_VER
+import epa_trainer
 
 SATIVA_INFO = \
 """SATIVA %s, released on %s. Last version: https://github.com/amkozlov/sativa
@@ -23,12 +24,8 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
 % (SATIVA_BUILD, SATIVA_RELEASE_DATE, SATIVA_RAXML_VER)
 
 class LeaveOneTest:
-    def __init__(self, config, args):
+    def __init__(self, config):
         self.cfg = config
-        self.method = args.method
-        self.minlw = args.min_lhw
-        self.jplace_fname = args.jplace_fname
-        self.ranktest = args.ranktest
         
         self.mis_fname = self.cfg.out_fname("%NAME%.mis")
         self.premis_fname = self.cfg.out_fname("%NAME%.premis")
@@ -38,7 +35,7 @@ class LeaveOneTest:
         if os.path.isfile(self.mis_fname):
             print "\nERROR: Output file already exists: %s" % self.mis_fname
             print "Please specify a different job name using -n or remove old output files."
-            sys.exit()
+            self.cfg.exit_user_error()
 
         self.tmp_refaln = config.tmp_fname("%NAME%.refaln")
         self.reftree_lbl_fname = config.tmp_fname("%NAME%_lbl.tre")
@@ -60,13 +57,13 @@ class LeaveOneTest:
             self.refjson = RefJsonParser(refjson_fname, ver="1.3")
         except ValueError:
             print("ERROR: Invalid json file format!")
-            sys.exit(-1)
+            self.cfg.exit_user_error()
             
         #validate input json format 
         (valid, err) = self.refjson.validate()
         if not valid:
             self.cfg.log.error("ERROR: Parsing reference JSON file failed:\n%s", err)
-            sys.exit(-1)
+            self.cfg.exit_user_error()
         
         self.rate = self.refjson.get_rate()
         self.node_height = self.refjson.get_node_height()
@@ -93,42 +90,17 @@ class LeaveOneTest:
         self.mislabels_cnt = [0] * TaxCode.UNI_TAX_LEVELS
         self.rank_mislabels_cnt = [0] * TaxCode.UNI_TAX_LEVELS
         
-    def run_epa_trainer(self, refjson_fname, args):
-        sativa_home = os.path.dirname(os.path.abspath(__file__))
-        trainer_script = os.path.join(sativa_home, "epa_trainer.py")
-        call_str = [trainer_script]
-        call_str += ["-s", args.align_fname]
-        call_str += ["-t", args.taxonomy_fname]
-        call_str += ["-x", args.taxcode_name]
-        call_str += ["-r", refjson_fname]
-        call_str += ["-T", str(args.num_threads)]
-        
-        call_str += ["-c", args.config_fname]
-        call_str += ["-o", args.output_dir]
-        call_str += ["-n", self.cfg.name]
-        call_str += ["-tmpdir", args.temp_dir]
-        
-        call_str += ["-C", "-no-hmmer"]
-        
-        if args.verbose:
-            call_str += ["-v"]
-        if args.debug:
-            call_str += ["-debug"]
-       
-        #print call_str
-        call(call_str)
-        
-        if not os.path.isfile(refjson_fname):
+    def run_epa_trainer(self):
+        epa_trainer.run_trainer(self.cfg)
+
+        if not os.path.isfile(self.cfg.refjson_fname):
             self.cfg.log.error("\nBuilding reference tree failed, see error messages above.")
-            sys.exit(-1)
-
-    def cleanup(self):
-        FileUtils.remove_if_exists(self.tmp_refaln)
-
+            self.cfg.exit_fatal_error()
+        
     def classify_seq(self, placement):
         edges = placement["p"]
         if len(edges) > 0:
-            return self.classify_helper.classify_seq(edges, self.method, self.minlw)
+            return self.classify_helper.classify_seq(edges, self.cfg.taxassign_method, self.cfg.minlw)
         else:
             print "ERROR: no placements! something is definitely wrong!"
 
@@ -212,7 +184,7 @@ class LeaveOneTest:
             real_lvl = mis_rec["real_level"]
             self.mislabels_cnt[real_lvl] += 1
         
-        if self.ranktest:
+        if self.cfg.ranktest:
             self.rank_mislabels = sorted(self.rank_mislabels, key=itemgetter('inv_level', 'conf'), reverse=True)
             for mis_rec in self.rank_mislabels:
                 real_lvl = mis_rec["real_level"]
@@ -229,7 +201,7 @@ class LeaveOneTest:
                 seq_sum += self.mislabels_cnt[i]
 #                    output = "%s:\t%d" % (rname, seq_sum)
                 output = "%s:\t%d" % (rname, self.mislabels_cnt[i])
-                if self.ranktest:
+                if self.cfg.ranktest:
                     rank_sum += self.rank_mislabels_cnt[i]
                     output += "\t%d" % rank_sum
                 self.cfg.log.info(output) 
@@ -248,7 +220,7 @@ class LeaveOneTest:
         
         with open(out_fname, "w") as fo_all:
             fields = ["SeqID", "MislabeledLevel", "OriginalLabel", "ProposedLabel", "Confidence", "OriginalTaxonomyPath", "ProposedTaxonomyPath", "PerRankConfidence"]
-            if self.ranktest:
+            if self.cfg.ranktest:
                 fields += ["HigherRankMisplacedConfidence"]
             header = ";" + "\t".join(fields) + "\n"
             fo_all.write(header)
@@ -264,7 +236,7 @@ class LeaveOneTest:
         if not final:
             return
 
-        if self.ranktest:
+        if self.cfg.ranktest:
             with open(self.misrank_fname, "w") as fo_all:
                 fields = ["RankID", "MislabeledLevel", "OriginalLabel", "ProposedLabel", "Confidence", "OriginalTaxonomyPath", "ProposedTaxonomyPath", "PerRankConfidence"]
                 header = ";" + "\t".join(fields)  + "\n"
@@ -358,7 +330,7 @@ class LeaveOneTest:
         
     def run_leave_seq_out_test(self):
         job_name = self.cfg.subst_name("l1out_seq_%NAME%")
-        if self.jplace_fname:
+        if self.cfg.jplace_fname:
             jp = EpaJsonParser(self.jplace_fname)
         else:        
             jp = self.raxml.run_epa(job_name, self.refalign_fname, self.reftree_fname, self.optmod_fname, mode="l1o_seq")
@@ -376,7 +348,7 @@ class LeaveOneTest:
             # check if they match
             mis_rec = self.check_seq_tax_labels(seq_name, orig_ranks, ranks, lws)
             # cross-check with higher rank mislabels
-            if self.ranktest and mis_rec:
+            if self.cfg.ranktest and mis_rec:
                 rank_conf = 0
                 for lvl in range(2,len(orig_ranks)):
                     tax_path = Taxonomy.get_rank_uid(orig_ranks, lvl)
@@ -384,9 +356,6 @@ class LeaveOneTest:
                         rank_conf = max(rank_conf, self.misrank_conf_map[tax_path])
                 mis_rec['rank_conf'] = rank_conf
             seq_count += 1
-
-        if not self.cfg.debug:
-            self.raxml.cleanup(job_name)
 
         return seq_count    
         
@@ -451,10 +420,6 @@ class LeaveOneTest:
             # check if they match
             mis_rec = self.check_seq_tax_labels(seq_name, orig_ranks, ranks, lws)
 
-        if not self.cfg.debug:
-            self.raxml.cleanup(job_name)
-            FileUtils.remove_if_exists(reftree_fname)
-            
     def run_test(self):
         self.raxml = RaxmlWrapper(self.cfg)
 
@@ -464,7 +429,7 @@ class LeaveOneTest:
         self.refalign_fname = self.refjson.get_alignment(self.tmp_refaln)        
         self.refjson.get_binary_model(self.optmod_fname)
 
-        if self.ranktest:
+        if self.cfg.ranktest:
             config.log.info("Running the leave-one-rank-out test...\n")
             subtree_count = self.run_leave_subtree_out_test()
             
@@ -518,9 +483,11 @@ def parse_args():
                     an assignment to a specific rank. This value represents a confidence 
                     measure of the assignment, assignments below this value will be discarded. 
                     Default: 0 to output all possbile assignments.""")
-    parser.add_argument("-m", dest="method", default="1",
-            help="""Taxonomic assignment method: 1=Max sum of likelihoods (default),
-                    2=Max likelihood placement""")
+    parser.add_argument("-m", dest="mfresolv_method", choices=["thorough", "fast", "ultrafast"],
+            default="thorough", help="""Method of multifurcation resolution: 
+            thorough    use stardard constrainted RAxML tree search (default)
+            fast        use RF distance as search convergence criterion (RAxML -D option)
+            ultrafast   optimize model+branch lengths only (RAxML -f e option)""")
 #    parser.add_argument("-p", dest="p_value", type=float, default=0.001,
 #            help="""P-value for branch length Erlang test. Default: 0.001\n""")
 
@@ -577,9 +544,6 @@ def check_args(args, parser):
     if args.min_lhw < 0 or args.min_lhw > 1.0:
          args.min_lhw = 0.0
     
-    if not (args.method == "1" or args.method == "2"):
-        args.method == "1"
-
     sativa_home = os.path.dirname(os.path.abspath(__file__))
     if not args.config_fname:
         args.config_fname = os.path.join(sativa_home, "sativa.cfg")
@@ -592,55 +556,57 @@ def check_args(args, parser):
             base_fname = args.ref_fname
         args.output_name = os.path.splitext(base_fname)[0]
         
-def print_run_info(config, args):
+def print_run_info(config):
     print ""
     config.log.info(SATIVA_INFO)
     
     if config.verbose:
         config.log.info("Mislabels search is running with the following parameters:")
-        if args.align_fname:
-            config.log.info(" Alignment:                        %s", args.align_fname)
-            config.log.info(" Taxonomy:                         %s", args.taxonomy_fname)
-        if args.ref_fname:
-            config.log.info(" Reference:                        %s", args.ref_fname)
-        if args.jplace_fname:
-            config.log.info(" EPA jplace file:                  %s", args.jplace_fname)
+        if config.align_fname:
+            config.log.info(" Alignment:                        %s", config.align_fname)
+            config.log.info(" Taxonomy:                         %s", config.taxonomy_fname)
+        if config.load_refjson:
+            config.log.info(" Reference:                        %s", config.refjson_fname)
+        if config.jplace_fname:
+            config.log.info(" EPA jplace file:                  %s", config.jplace_fname)
         #config.log.info(" Min likelihood weight:            %f", args.min_lhw)
 #        config.log.info(" Assignment method:                %s", args.method)
     #    print(" P-value for branch length test:   %f" % args.p_value)
-        config.log.info(" Output directory:                 %s", os.path.abspath(args.output_dir))
+        config.log.info(" Output directory:                 %s", os.path.abspath(config.output_dir))
         config.log.info(" Job name / output files prefix:   %s", config.name)
         config.log.info(" Number of threads:                %d", config.num_threads)
         config.log.info("")
 
+    if config.debug:
+        config.log.debug("Running in DEBUG mode, temp files will be saved to: %s\n", os.path.abspath(config.temp_dir))
+
 if __name__ == "__main__":
     args = parse_args()
-    config = EpacConfig(args)
+    config = SativaConfig(args)
     
     start_time = time.time()
     trainer_time = 0
     
-    t = LeaveOneTest(config, args)
-    print_run_info(config, args)
+    t = LeaveOneTest(config)
+    print_run_info(config)
 
-    if config.refjson_fname:
+    if config.load_refjson:
         t.load_refjson(config.refjson_fname)
     else:
-        refjson_fname = config.tmp_fname("%NAME%.refjson")
         config.log.info("*** STEP 1: Building the reference tree using provided alignment and taxonomic annotations ***\n")
         tr_start_time = time.time() 
-        t.run_epa_trainer(refjson_fname, args)
+        t.run_epa_trainer()
         trainer_time = time.time() - tr_start_time
-        t.load_refjson(refjson_fname)
+        t.load_refjson(config.refjson_fname)
         if not config.debug:
-            FileUtils.remove_if_exists(refjson_fname)
+            FileUtils.remove_if_exists(config.refjson_fname)
         config.log.info("*** STEP 2: Searching for mislabels ***\n")
     
     l1out_start_time = time.time()
     
     t.run_test()
-    if not config.debug:
-        t.cleanup()
+    
+    config.clean_tempdir()
         
     l1out_time = time.time() - l1out_start_time
 

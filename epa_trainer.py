@@ -46,9 +46,7 @@ class RefTreeBuilder:
                 if self.cfg.debug:
                     print("Guessing input format: not " + fmt)
         if self.input_seqs == None:
-            print("Invalid input file format: %s" % in_file)
-            print("The supported input formats are fasta and phylip")
-            sys.exit()
+            self.cfg.exit_user_error("Invalid input file format: %s\nThe supported input formats are fasta and phylip" % in_file)
             
     def validate_taxonomy(self):
         # make sure we don't taxonomy "irregularities" (more than 7 ranks or missing ranks in the middle)
@@ -74,7 +72,7 @@ class RefTreeBuilder:
                     print "\nPlease fix them manually (add/remove ranks) and run the pipeline again (or use -wrong-rank-count autofix option)"
                     print "NOTE: Only standard 7-level taxonomies are supported at the moment. Although missing trailing ranks (e.g. species) are allowed,"
                     print "missing intermediate ranks (e.g. family) or sublevels (e.g. suborder) are not!\n"
-                    sys.exit()
+                    self.cfg.exit_user_error()
 
         # check for duplicate rank names
         action = self.cfg.dup_rank_names
@@ -98,7 +96,7 @@ class RefTreeBuilder:
                     for dup in dups:
                         print "%s\t%s\n%s\t%s\n" % dup
                     print "Please fix (rename) them and run the pipeline again (or use -dup-rank-names autofix option)" 
-                    sys.exit()
+                    self.cfg.exit_user_error()
         
         # check for invalid characters in rank names
         corr_ranks = self.taxonomy.normalize_rank_names()
@@ -215,19 +213,14 @@ class RefTreeBuilder:
             if self.raxml_wrapper.result_exists(self.optmod_job_name):
                 self.raxml_wrapper.copy_result_tree(self.optmod_job_name, self.reftree_bfu_fname)
                 self.raxml_wrapper.copy_optmod_params(self.optmod_job_name, self.optmod_fname)
-                if not self.cfg.debug:
-                    self.raxml_wrapper.cleanup(self.optmod_job_name)
             else:
-                print "RAxML run failed (model optimization), please examine the log for details: %s" \
+                errmsg = "RAxML run failed (model optimization), please examine the log for details: %s" \
                         % self.raxml_wrapper.make_raxml_fname("output", self.optmod_job_name)
-                sys.exit()  
-
-            if not self.cfg.debug:
-                self.raxml_wrapper.cleanup(self.mfresolv_job_name)
+                self.cfg.exit_fatal_error(errmsg)
         else:
-            print "RAxML run failed (mutlifurcation resolution), please examine the log for details: %s" \
+            errmsg = "RAxML run failed (mutlifurcation resolution), please examine the log for details: %s" \
                     % self.raxml_wrapper.make_raxml_fname("output", self.mfresolv_job_name)
-            sys.exit()  
+            self.cfg.exit_fatal_error(errmsg)
             
     def load_reduced_refalign(self):
         formats = ["fasta", "phylip_relaxed"]
@@ -238,8 +231,8 @@ class RefTreeBuilder:
             except:
                 pass
         if self.reduced_refalign_seqs == None:
-            print("FATAL ERROR: Invalid input file format in %s! (load_reduced_refalign)" % self.reduced_refalign_fname)
-            sys.exit()
+            errmsg = "FATAL ERROR: Invalid input file format in %s! (load_reduced_refalign)" % self.reduced_refalign_fname
+            self.cfg.exit_fatal_error(errmsg)
     
     # dummy EPA run to label the branches of the reference tree, which we need to build a mapping to tax ranks    
     def epa_branch_labeling(self):
@@ -256,13 +249,10 @@ class RefTreeBuilder:
         self.raxml_version = epa_result.get_raxml_version()
         self.invocation_raxml_epalbl = epa_result.get_raxml_invocation()
 
-        if self.raxml_wrapper.epa_result_exists(self.epalbl_job_name):        
-            if not self.cfg.debug:
-                self.raxml_wrapper.cleanup(self.epalbl_job_name, True)
-        else:
-            print "RAxML EPA run failed, please examine the log for details: %s" \
+        if not self.raxml_wrapper.epa_result_exists(self.epalbl_job_name):        
+            errmsg = "RAxML EPA run failed, please examine the log for details: %s" \
                     % self.raxml_wrapper.make_raxml_fname("output", self.epalbl_job_name)
-            sys.exit()        
+            self.cfg.exit_fatal_error(errmsg)
 
     def epa_post_process(self):
         lbl_tree = Tree(self.reftree_lbl_str)
@@ -308,8 +298,8 @@ class RefTreeBuilder:
                         dummy_added = True
                         species_rank = Taxonomy.EMPTY_RANK
                     else:
-                        print "FATAL ERROR: More than one tree branch without EPA label (calc_node_heights)"
-                        sys.exit()
+                        errmsg = "FATAL ERROR: More than one tree branch without EPA label (calc_node_heights)"
+                        self.cfg.exit_fatal_error(errmsg)
                 else:
                     species_rank = self.bid_ranks_map[node.B][6]
                 bid = node.B
@@ -568,7 +558,13 @@ def check_dep(config):
             print "ERROR: HMMER not found!"
             print "Please either specify path to HMMER executables in the config file" 
             print "or call this script with -no-hmmer option to skip building HMMER profile." 
-            sys.exit()
+            config.exit_user_error()
+            
+def run_trainer(config):
+    check_dep(config)
+    builder = RefTreeBuilder(config)
+    builder.invocation_epac = " ".join(sys.argv)
+    builder.build_ref_tree()
         
 # -------
 # MAIN
@@ -577,9 +573,5 @@ if __name__ == "__main__":
     args = parse_args()
     check_args(args)
     config = EpacTrainerConfig(args)
-    check_dep(config)
-    builder = RefTreeBuilder(config)
-    builder.invocation_epac = " ".join(sys.argv)
-    builder.build_ref_tree()
-    if not args.debug:
-        builder.cleanup()
+    run_trainer(config)
+    config.clean_tempdir()

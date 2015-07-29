@@ -35,7 +35,7 @@ class RaxmlWrapper:
     def make_raxml_fname(self, stem, job_name, absolute=True):
         fname = "RAxML_" + stem + "." + job_name
         if absolute:
-            return self.cfg.raxml_outdir + fname
+            return os.path.join(self.cfg.raxml_outdir, fname)
         else:
             return fname            
 
@@ -179,7 +179,7 @@ class RaxmlWrapper:
         call(qsub_call_str)
         if not self.cfg.debug:
             FileUtils.remove_if_exists(script_fname)
-
+            
     def result_fname(self, job_name):
         return self.make_raxml_fname("result", job_name)
     
