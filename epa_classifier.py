@@ -452,6 +452,9 @@ def check_args(args):
 
 
 def print_run_info(config, args):
+    print ""
+    config.print_version("SATIVA-classifier")
+
     config.log.info("\nEPA-classifier running with the following parameters:")
     config.log.info(" Reference:......................%s" % os.path.abspath(args.ref_fname))
     config.log.info(" Query:..........................%s" % os.path.abspath(args.query_fname))
@@ -492,9 +495,9 @@ if __name__ == "__main__":
     
     config.clean_tempdir()
     
-    config.log.info("Results were saved to: %s", os.path.abspath(ec.out_assign_fname))
+    config.log.info("Taxonomic assignment results were saved to: %s", os.path.abspath(ec.out_assign_fname))
     config.log.info("Execution log was saved to: %s\n", os.path.abspath(config.log_fname))
 
     elapsed_time = time.time() - start_time
-    config.log.info("Analysis completed successfully, elapsed time: %.0f seconds\n", elapsed_time)
+    config.log.info("Classification completed successfully, elapsed time: %.0f seconds\n", elapsed_time)
 

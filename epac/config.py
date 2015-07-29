@@ -10,6 +10,8 @@ import logging
 import multiprocessing
 import ConfigParser
 
+from epac.version import SATIVA_BUILD,SATIVA_RELEASE_DATE,SATIVA_RAXML_VER
+
 class DefaultedConfigParser(ConfigParser.SafeConfigParser):
     def get_param(self, section, option, ctype=str, default=None):
         if default is None:
@@ -36,6 +38,12 @@ class EpacConfig:
     CAT_GAMMA_THRES   = 500
     GAMMA_UPPER_THRES = 10000
     EPA_HEUR_THRES    = 1000
+    
+    SATIVA_INFO = \
+    """%s %s, released on %s. Last version: https://github.com/amkozlov/sativa 
+By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"""\
+    % ("%s", SATIVA_BUILD, SATIVA_RELEASE_DATE, SATIVA_RAXML_VER)
+    
     
     @staticmethod
     def strip_prefix(seq_name, prefix):
@@ -235,7 +243,10 @@ class EpacConfig:
         if msg:
             self.log.error(msg)
         self.clean_tempdir()
-        sys.exit(14)    
+        sys.exit(14)
+
+    def print_version(self, progname):
+        self.log.info(EpacConfig.SATIVA_INFO % progname)    
     
 class EpacTrainerConfig(EpacConfig):
     

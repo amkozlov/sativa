@@ -411,7 +411,6 @@ class RefTreeBuilder:
 
     # top-level function to build a reference tree    
     def build_ref_tree(self):
-        start_time = time.time()
         self.cfg.log.info("=> Loading taxonomy from file: %s ...\n" , self.cfg.taxonomy_fname)
         self.taxonomy = Taxonomy(self.cfg.taxonomy_fname, EpacConfig.REF_SEQ_PREFIX)
         self.cfg.log.info("==> Loading reference alignment from file: %s ...\n" , self.cfg.align_fname)
@@ -573,5 +572,17 @@ if __name__ == "__main__":
     args = parse_args()
     check_args(args)
     config = EpacTrainerConfig(args)
+
+    print ""
+    config.print_version("SATIVA-trainer")
+
+    start_time = time.time()
+
     run_trainer(config)
     config.clean_tempdir()
+
+    config.log.info("Reference JSON was saved to: %s", os.path.abspath(config.refjson_fname))
+    config.log.info("Execution log was saved to: %s\n", os.path.abspath(config.log_fname))
+
+    elapsed_time = time.time() - start_time
+    config.log.info("Training completed successfully, elapsed time: %.0f seconds\n", elapsed_time)

@@ -15,13 +15,7 @@ from epac.raxml_util import RaxmlWrapper, FileUtils
 from epac.json_util import RefJsonParser, RefJsonChecker, EpaJsonParser
 from epac.taxonomy_util import TaxCode, Taxonomy
 from epac.classify_util import TaxTreeHelper,TaxClassifyHelper
-from epac.version import SATIVA_BUILD,SATIVA_RELEASE_DATE,SATIVA_RAXML_VER
 import epa_trainer
-
-SATIVA_INFO = \
-"""SATIVA %s, released on %s. Last version: https://github.com/amkozlov/sativa
-By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"""\
-% (SATIVA_BUILD, SATIVA_RELEASE_DATE, SATIVA_RAXML_VER)
 
 class LeaveOneTest:
     def __init__(self, config):
@@ -453,7 +447,7 @@ class LeaveOneTest:
 
 def parse_args():
     parser = ArgumentParser(usage="%(prog)s -s ALIGNMENT -t TAXONOMY -x {BAC,BOT,ZOO,VIR} [options]",
-    description=SATIVA_INFO,
+    description=EpacConfig.SATIVA_INFO % "SATIVA",
     epilog="Example: sativa.py -s example/test.phy -t example/test.tax -x BAC",
     formatter_class=RawDescriptionHelpFormatter)
     parser.add_argument("-s", dest="align_fname",
@@ -558,7 +552,7 @@ def check_args(args, parser):
         
 def print_run_info(config):
     print ""
-    config.log.info(SATIVA_INFO)
+    config.print_version("SATIVA")
     
     if config.verbose:
         config.log.info("Mislabels search is running with the following parameters:")
