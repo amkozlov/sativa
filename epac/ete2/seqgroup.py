@@ -181,3 +181,5 @@ class SeqGroup(object):
             self.name2id[new_name] = self.name2id.pop(old_name)
             self.id2name[sid] = new_name
 
+    def has_seq(self, name):
+        return (name in self.name2id)

@@ -99,6 +99,18 @@ class RefTreeBuilder:
                     print "Please fix (rename) them and run the pipeline again (or use -dup-rank-names autofix option)" 
                     self.cfg.exit_user_error()
         
+        # check that seq IDs in taxonomy and alignment correspond
+        mis_ids = []
+        for sid in self.taxonomy.seq_ranks_map.iterkeys():
+            unprefixed_sid = sid[len(EpacConfig.REF_SEQ_PREFIX):]
+            if not self.input_seqs.has_seq(unprefixed_sid):
+                mis_ids.append(unprefixed_sid)
+            
+        if len(mis_ids) > 0:
+            errmsg = "ERROR: Following %d sequence(s) are missing in your alignment file:\n%s\n" % (len(mis_ids), "\n".join(mis_ids))
+            errmsg += "Please make sure sequence IDs in taxonomic annotation file and in alignment are identical!\n"
+            self.cfg.exit_user_error(errmsg)
+        
         # check for invalid characters in rank names
         corr_ranks = self.taxonomy.normalize_rank_names()
         for old_rank in sorted(corr_ranks.keys()):
