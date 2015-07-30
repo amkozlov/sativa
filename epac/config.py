@@ -184,7 +184,7 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
                     self.exit_user_error("RAxML executable not found: %s" % self.raxml_exec_full)
         else:
             self.raxml_remote_call = True
-        self.raxml_cmd = [self.raxml_exec_full, "-p", "12345", "-w", self.raxml_outdir_abs]
+        self.raxml_cmd = [self.raxml_exec_full, "-w", self.raxml_outdir_abs]
         if self.num_threads > 1:
             self.raxml_cmd += ["-T", str(self.num_threads)]
         
@@ -260,6 +260,7 @@ class EpacTrainerConfig(EpacConfig):
         self.compress_patterns = args.compress_patterns
         self.mfresolv_method = args.mfresolv_method
         self.taxcode_name = args.taxcode_name
+        self.rep_num = args.rep_num
         
     def set_defaults(self):
         EpacConfig.set_defaults(self)
@@ -302,6 +303,7 @@ class SativaConfig(EpacTrainerConfig):
         args.dup_rank_names = "ignore"
         args.wrong_rank_count = "ignore"
         args.taxassign_method = "1"
+        args.rep_num = 1
 
         EpacTrainerConfig.__init__(self, args)
 

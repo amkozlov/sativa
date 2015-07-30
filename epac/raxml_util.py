@@ -5,6 +5,8 @@ import sys
 import glob
 import shutil
 import datetime
+import random
+import re
 from subprocess import call,STDOUT
 from json_util import EpaJsonParser
 
@@ -31,6 +33,8 @@ class RaxmlWrapper:
 
     def __init__(self, config): 
         self.cfg = config
+        # set constant seed to achieve reproducibility across runs
+        random.seed(12345)
     
     def make_raxml_fname(self, stem, job_name, absolute=True):
         fname = "RAxML_" + stem + "." + job_name
@@ -126,18 +130,24 @@ class RaxmlWrapper:
 
         self.cleanup(job_name)
         
-        params += ["-m", self.cfg.raxml_model, "-n", job_name]
-        params += ["--no-bfgs"]
+        lparams  = []
+        lparams += params
+        lparams += ["-m", self.cfg.raxml_model, "-n", job_name]
+        lparams += ["--no-bfgs"]
+        
+        if not "-p" in lparams:
+            seed = random.randint(1, 32000)
+            lparams += ["-p", str(seed)]
 
         if self.cfg.run_on_cluster:
-            self.run_cluster(params)
+            self.run_cluster(lparams)
             return;        
 
         if self.cfg.raxml_remote_call:
             call_str = ["ssh", self.cfg.raxml_remote_host]
         else:
             call_str = []
-        call_str += self.cfg.raxml_cmd + params
+        call_str += self.cfg.raxml_cmd + lparams
         if silent:        
             self.cfg.log.debug(' '.join(call_str) + "\n")
             out_fname = self.make_raxml_fname("output", job_name)
@@ -147,7 +157,24 @@ class RaxmlWrapper:
             call(call_str)
 
         return ' '.join(call_str)
-
+        
+    def run_multiple(self, job_name, params, repnum, silent=True):    
+        best_lh = float("-inf")
+        best_jobname = None
+        for i in range(repnum):
+            rep_jobname = "%s.%d" % (job_name, i)
+            invoc_str = self.run(rep_jobname, params, silent)
+            lh = self.get_tree_lh(rep_jobname)
+            if lh > best_lh:
+                best_lh = lh
+                best_jobname = rep_jobname
+        
+        best_fname = self.result_fname(best_jobname)
+        dst_fname = self.result_fname(job_name)
+        shutil.copy(best_fname, dst_fname)
+        
+        return invoc_str
+        
     def run_cluster(self, params):
         if self.cfg.raxml_remote_call:
             qsub_call_str = ["ssh", self.cfg.raxml_remote_host]
@@ -180,9 +207,30 @@ class RaxmlWrapper:
         if not self.cfg.debug:
             FileUtils.remove_if_exists(script_fname)
             
+    def get_tree_lh(self, job_name):
+        info_fname = self.info_fname(job_name)
+        with open(info_fname, "r") as info_file:
+            info_str = info_file.read()
+        
+        lh_patterns = ["Final GAMMA-based Score of best tree ",
+                       "Final GAMMA  likelihood: ",
+                       "GAMMA-based likelihood ",
+                       "CAT-based likelihood "]
+        m = None
+        for pat in lh_patterns:
+            m = re.search('(?<=%s)[0-9.\-]+' % pat, info_str)
+            if m:
+                lh = float(m.group(0))
+                return lh
+                
+        return None
+    
     def result_fname(self, job_name):
         return self.make_raxml_fname("result", job_name)
     
+    def info_fname(self, job_name):
+        return self.make_raxml_fname("info", job_name)
+
     def result_exists(self, job_name):
         if os.path.isfile(self.result_fname(job_name)):
             return True

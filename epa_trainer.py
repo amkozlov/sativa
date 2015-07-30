@@ -6,6 +6,7 @@ import shutil
 import datetime
 import time
 import logging
+import multiprocessing
 
 from epac.ete2 import Tree, SeqGroup
 from epac.argparse import ArgumentParser,RawTextHelpFormatter
@@ -191,13 +192,13 @@ class RefTreeBuilder:
         self.cfg.log.debug("\nReducing the alignment: \n")
         self.reduced_refalign_fname = self.raxml_wrapper.reduce_alignment(self.refalign_fname)
         
-        self.cfg.log.debug("\nResolving multifurcation: \n")
-        raxml_params = ["-s", self.reduced_refalign_fname, "-g", self.reftree_mfu_fname, "-F", "--no-seq-check"]
+        self.cfg.log.debug("\nConstrained ML inference: \n")
+        raxml_params = ["-s", self.reduced_refalign_fname, "-g", self.reftree_mfu_fname, "-F", "--no-seq-check"] 
         if self.cfg.mfresolv_method  == "fast":
             raxml_params += ["-D"]
         elif self.cfg.mfresolv_method  == "ultrafast":
             raxml_params += ["-f", "e"]
-        self.invocation_raxml_multif = self.raxml_wrapper.run(self.mfresolv_job_name, raxml_params)
+        self.invocation_raxml_multif = self.raxml_wrapper.run_multiple(self.mfresolv_job_name, raxml_params, self.cfg.rep_num)
         if self.raxml_wrapper.result_exists(self.mfresolv_job_name):        
 #            self.raxml_wrapper.copy_result_tree(self.mfresolv_job_name, self.reftree_bfu_fname)
 #            self.raxml_wrapper.copy_optmod_params(self.mfresolv_job_name, self.optmod_fname)
@@ -211,6 +212,8 @@ class RefTreeBuilder:
                 raxml_params +=  ["-H"]
             self.invocation_raxml_optmod = self.raxml_wrapper.run(self.optmod_job_name, raxml_params)
             if self.raxml_wrapper.result_exists(self.optmod_job_name):
+                self.reftree_loglh = self.raxml_wrapper.get_tree_lh(self.optmod_job_name)
+                self.cfg.log.debug("\nLogLH of the reference tree: %f\n" % self.reftree_loglh)
                 self.raxml_wrapper.copy_result_tree(self.optmod_job_name, self.reftree_bfu_fname)
                 self.raxml_wrapper.copy_optmod_params(self.optmod_job_name, self.optmod_fname)
             else:
@@ -376,7 +379,8 @@ class RefTreeBuilder:
                   "invocation_epac": self.invocation_epac,
                   "invocation_raxml_multif": self.invocation_raxml_multif,
                   "invocation_raxml_optmod": self.invocation_raxml_optmod,
-                  "invocation_raxml_epalbl": self.invocation_raxml_epalbl
+                  "invocation_raxml_epalbl": self.invocation_raxml_epalbl,
+                  "reftree_loglh": self.reftree_loglh
                 }
         jw.set_metadata(mdata)
 
@@ -399,16 +403,6 @@ class RefTreeBuilder:
         self.cfg.log.debug("Writing down the reference file...\n")
         jw.dump(self.cfg.refjson_fname)
 
-    def cleanup(self):
-        FileUtils.remove_if_exists(self.outgr_fname)
-        FileUtils.remove_if_exists(self.reftree_mfu_fname)
-        FileUtils.remove_if_exists(self.reftree_bfu_fname)
-        FileUtils.remove_if_exists(self.optmod_fname)
-        FileUtils.remove_if_exists(self.lblalign_fname)
-        FileUtils.remove_if_exists(self.outgr_fname)
-        FileUtils.remove_if_exists(self.reduced_refalign_fname)
-        FileUtils.remove_if_exists(self.refalign_fname)
-
     # top-level function to build a reference tree    
     def build_ref_tree(self):
         self.cfg.log.info("=> Loading taxonomy from file: %s ...\n" , self.cfg.taxonomy_fname)
@@ -423,10 +417,10 @@ class RefTreeBuilder:
         self.export_ref_taxonomy()
         self.cfg.log.info("=====> Saving the outgroup for later re-rooting ...\n")
         self.save_rooting()
-        self.cfg.log.info("======> RAxML call: resolve multifurcation ...\n")
+        self.cfg.log.info("======> Resolving multifurcation: choosing the best topology from %d independent RAxML runs ...\n" % self.cfg.rep_num)
         self.resolve_multif()
         self.load_reduced_refalign()
-        self.cfg.log.info("=======> RAxML-EPA call: labeling the branches ...\n")
+        self.cfg.log.info("=======> Calling RAxML-EPA to obtain branch labels ...\n")
         self.epa_branch_labeling()
         self.cfg.log.info("========> Post-processing the EPA tree (re-rooting, taxonomic labeling etc.) ...\n")
         self.epa_post_process()
@@ -438,8 +432,6 @@ class RefTreeBuilder:
         
         self.cfg.log.info("=========> Saving the reference JSON file: %s\n" % self.cfg.refjson_fname)
         self.write_json()
-        elapsed_time = time.time() - start_time
-#        self.cfg.log.info("\n***********  Done! (%.0f s) **********\n", elapsed_time)
 
 def parse_args():
     parser = ArgumentParser(description="Build a reference tree for EPA taxonomic placement.",
@@ -454,7 +446,7 @@ in taxonomy file.""")
             help="""Reference output file. It will contain reference alignment, phylogenetic tree and other
 information needed for taxonomic placement of query sequences.""")
     parser.add_argument("-T", dest="num_threads", type=int, default=None,
-            help="""Specify the number of CPUs.  Default: 2""")            
+            help="""Specify the number of CPUs.  Default: %d""" % multiprocessing.cpu_count())            
     parser.add_argument("-c", dest="config_fname", default=None,
             help="""Config file name.""")
     parser.add_argument("-C", dest="compress_patterns", default=False, action="store_true",
@@ -468,6 +460,8 @@ information needed for taxonomic placement of query sequences.""")
             thorough    use stardard constrainted RAxML tree search (default)
             fast        use RF distance as search convergence criterion (RAxML -D option)
             ultrafast   optimize model+branch lengths only (RAxML -f e option)""")
+    parser.add_argument("-N", dest="rep_num", type=int, default=1, 
+            help="""Number of RAxML runs (with distinct random seeds). Default: 1""")
     parser.add_argument("-x", dest="taxcode_name", choices=["bac", "bot", "zoo", "vir"], type = str.lower,
             help="""Taxonomic code: BAC(teriological), BOT(anical), ZOO(logical), VIR(ological)""")
     parser.add_argument("-v", dest="verbose", action="store_true",
@@ -530,6 +524,10 @@ def check_args(args):
     except:
         print "ERROR: cannot create output file: %s" % args.ref_fname
         print "Please check if directory %s exists and you have write permissions for it." % os.path.split(os.path.abspath(args.ref_fname))[0]
+        sys.exit()
+        
+    if args.rep_num < 1 or args.rep_num > 1000:
+        print "ERROR: Number of RAxML runs must be between 1 and 1000."
         sys.exit()
 
 def which(program, custom_path=[]):
