@@ -102,26 +102,28 @@ class RefTreeBuilder:
         # check that seq IDs in taxonomy and alignment correspond
         mis_ids = []
         for sid in self.taxonomy.seq_ranks_map.iterkeys():
-            unprefixed_sid = sid[len(EpacConfig.REF_SEQ_PREFIX):]
+            unprefixed_sid = EpacConfig.strip_ref_prefix(sid)
             if not self.input_seqs.has_seq(unprefixed_sid):
                 mis_ids.append(unprefixed_sid)
             
         if len(mis_ids) > 0:
-            errmsg = "ERROR: Following %d sequence(s) are missing in your alignment file:\n%s\n" % (len(mis_ids), "\n".join(mis_ids))
+            errmsg = "ERROR: Following %d sequence(s) are missing in your alignment file:\n%s\n\n" % (len(mis_ids), "\n".join(mis_ids))
             errmsg += "Please make sure sequence IDs in taxonomic annotation file and in alignment are identical!\n"
             self.cfg.exit_user_error(errmsg)
         
         # check for invalid characters in rank names
-        corr_ranks = self.taxonomy.normalize_rank_names()
-        for old_rank in sorted(corr_ranks.keys()):
-            self.cfg.log.warning("WARNING: Following rank name contains illegal symbols and was renamed: %s --> %s", old_rank, corr_ranks[old_rank])
+        self.corr_ranks = self.taxonomy.normalize_rank_names()
+        for old_rank in sorted(self.corr_ranks.keys()):
+            self.cfg.log.debug("NOTE: Following rank name contains illegal symbols and was renamed: %s --> %s", old_rank, self.corr_ranks[old_rank])
         
-        print ""
+        self.cfg.log.debug("")
         
         # check for invalid characters in sequence IDs
-        self.corr_seq_ids = self.taxonomy.normalize_seq_ids()
-        for old_sid in sorted(self.corr_seq_ids.keys()):
-            self.cfg.log.warning("WARNING: Following sequence ID contains illegal symbols and was renamed: %s --> %s" , old_sid, self.corr_seq_ids[old_sid])
+        self.corr_seqid = self.taxonomy.normalize_seq_ids()
+        for old_sid in sorted(self.corr_seqid.keys()):
+            self.cfg.log.debug("NOTE: Following sequence ID contains illegal symbols and was renamed: %s --> %s" , old_sid, self.corr_seqid[old_sid])
+        
+        self.cfg.log.debug("")
         
         self.taxonomy.close_taxonomy_gaps()
 
@@ -158,8 +160,8 @@ class RefTreeBuilder:
         with open(self.refalign_fname, "w") as fout:
             for name, seq, comment, sid in self.input_seqs.iter_entries():
                 seq_name = EpacConfig.REF_SEQ_PREFIX + name
-                if seq_name in self.corr_seq_ids:
-                  seq_name = self.corr_seq_ids[seq_name]
+                if seq_name in self.corr_seqid:
+                  seq_name = self.corr_seqid[seq_name]
                 if seq_name in self.reftree_ids:
                     fout.write(">" + seq_name + "\n" + seq + "\n")
 
@@ -383,6 +385,11 @@ class RefTreeBuilder:
         jw.set_tax_tree(self.reftree_multif)
         jw.set_pattern_compression(self.cfg.compress_patterns)
         jw.set_taxcode(self.cfg.taxcode_name)
+        
+        corr_ranks_reverse = dict((reversed(item) for item in self.corr_ranks.items()))
+        jw.set_corr_ranks_map(corr_ranks_reverse)
+        corr_seqid_reverse = dict((reversed(item) for item in self.corr_seqid.items()))
+        jw.set_corr_seqid_map(corr_seqid_reverse)
 
         mdata = { "ref_tree_size": self.reftree_size, 
                   "ref_alignment_width": self.refalign_width,

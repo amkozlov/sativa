@@ -109,7 +109,7 @@ class LeaveOneTest:
         if mislabel_lvl >= 0:
             real_lvl = self.tax_code.guess_rank_level(orig_ranks, mislabel_lvl)
             mis_rec = {}
-            mis_rec['name'] = EpacConfig.strip_ref_prefix(seq_name)
+            mis_rec['name'] = seq_name
             mis_rec['orig_level'] = mislabel_lvl
             mis_rec['real_level'] = real_lvl
             mis_rec['level_name'] = self.tax_code.rank_level_name(real_lvl)[0]
@@ -162,11 +162,14 @@ class LeaveOneTest:
 
     def mis_rec_to_string(self, mis_rec):
         lvl = mis_rec['orig_level']
-        output = mis_rec['name'] + "\t"
+        uncorr_name = EpacConfig.strip_ref_prefix(self.refjson.get_uncorr_seqid(mis_rec['name']))
+        uncorr_orig_ranks = self.refjson.get_uncorr_ranks(mis_rec['orig_ranks'])
+        uncorr_ranks = self.refjson.get_uncorr_ranks(mis_rec['ranks'])
+        output = uncorr_name + "\t"
         output += "%s\t%s\t%s\t%.3f\t" % (mis_rec['level_name'], 
-            mis_rec['orig_ranks'][lvl], mis_rec['ranks'][lvl], mis_rec['lws'][lvl])
-        output += Taxonomy.lineage_str(mis_rec['orig_ranks']) + "\t"
-        output += Taxonomy.lineage_str(mis_rec['ranks']) + "\t"
+            uncorr_orig_ranks[lvl], uncorr_ranks[lvl], mis_rec['lws'][lvl])
+        output += Taxonomy.lineage_str(uncorr_orig_ranks) + "\t"
+        output += Taxonomy.lineage_str(uncorr_ranks) + "\t"
         output += ";".join(["%.3f" % conf for conf in mis_rec['lws']])
         if 'rank_conf' in mis_rec:
             output += "\t%.3f" % mis_rec['rank_conf']
@@ -358,8 +361,8 @@ class LeaveOneTest:
         tmp_reftree = self.reftree.copy() 
         tmp_taxtree = self.tax_tree.copy() 
         for mis_rec in self.mislabels:
-            name = mis_rec['name']
-            rname = EpacConfig.REF_SEQ_PREFIX + name
+            rname = mis_rec['name']
+#            rname = EpacConfig.REF_SEQ_PREFIX + name
 
             leaf_nodes = tmp_reftree.get_leaves_by_name(rname)
             if len(leaf_nodes) > 0:

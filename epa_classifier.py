@@ -105,7 +105,7 @@ class EpaClassifier:
             self.cfg.log.info("Assuming query file contains reference sequences, skipping the alignment step...\n")
             with open(self.epa_alignment, "w") as fout:
                 for name, seq, comment, sid in self.seqs.iter_entries():
-                    ref_name = EpacConfig.REF_SEQ_PREFIX + name
+                    ref_name = self.refjson.get_corr_seqid(EpacConfig.REF_SEQ_PREFIX + name)
                     if ref_name in self.refjson.get_sequences_names():
                         seq_name = ref_name
                     else:
@@ -146,14 +146,15 @@ class EpaClassifier:
             self.align_to_refenence(self.noalign, minp = minp)
 
     def print_ranks(self, rks, confs, minlw = 0.0):
+        uncorr_ranks = self.refjson.get_uncorr_ranks(rks)
         ss = ""
         css = ""
-        for i in range(len(rks)):
+        for i in range(len(uncorr_ranks)):
             conf = confs[i]
             if conf == confs[0] and confs[0] >=0.99:
                 conf = 1.0
             if conf >= minlw:
-                ss = ss + rks[i] + ";"
+                ss = ss + uncorr_ranks[i] + ";"
                 css = css + "{0:.3f}".format(conf) + ";"
             else:
                 break

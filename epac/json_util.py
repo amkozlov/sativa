@@ -87,6 +87,12 @@ class RefJsonChecker:
             valid = valid and \
                     self.check_field("taxcode", unicode, TaxCode.TAX_CODE_MAP)
         
+        # check v1.4 fields, if needed
+        if nver >= 1.4:
+            valid = valid \
+                    and self.check_field("corr_seqid_map", dict) \
+                    and self.check_field("corr_ranks_map", dict)
+
         return (valid, self.error)
 
 class RefJsonParser:
@@ -94,6 +100,9 @@ class RefJsonParser:
     def __init__(self, jsonfin, ver = "1.1"):
         self.jdata = json.load(open(jsonfin))
         self.version = ver
+        self.corr_seqid = None
+        self.corr_ranks = None
+        self.corr_seqid_reverse = None
         
     def validate(self):
         jc = RefJsonChecker(jdata = self.jdata)
@@ -191,6 +200,20 @@ class RefJsonParser:
 
     def get_taxcode(self):
         return self.jdata["taxcode"]
+        
+    def get_corr_seqid_map(self):
+        if "corr_seqid_map" in self.jdata:
+            self.corr_seqid = self.jdata["corr_seqid_map"]
+        else:
+            self.corr_seqid = {}
+        return self.corr_seqid
+
+    def get_corr_ranks_map(self):
+        if "corr_ranks_map" in self.jdata:
+            self.corr_ranks = self.jdata["corr_ranks_map"]
+        else:
+            self.corr_ranks = {}
+        return self.corr_ranks
 
     def get_metadata(self):
         return self.jdata["metadata"]
@@ -200,6 +223,26 @@ class RefJsonParser:
             return json.dumps(self.jdata[field_name], indent=4, separators=(',', ': ')).strip("\"")
         else:
             return None
+            
+    def get_uncorr_seqid(self, new_seqid):
+        if not self.corr_seqid:
+            self.get_corr_seqid_map()
+        return self.corr_seqid.get(new_seqid, new_seqid)
+        
+    def get_corr_seqid(self, old_seqid):
+        if not self.corr_seqid_reverse:
+            if not self.corr_seqid:
+                self.get_corr_seqid_map()
+            self.corr_seqid_reverse = dict((reversed(item) for item in self.corr_seqid.items()))
+        return self.corr_seqid_reverse.get(old_seqid, old_seqid)
+
+    def get_uncorr_ranks(self, ranks):
+        if not self.corr_ranks:
+            self.get_corr_ranks_map()
+        uncorr_ranks = list(ranks)
+        for i in range(len(ranks)):
+            uncorr_ranks[i] = self.corr_ranks.get(ranks[i], ranks[i])
+        return uncorr_ranks        
                 
 class RefJsonBuilder:
     """This class builds the EPA Classifier reference json file"""
@@ -208,7 +251,7 @@ class RefJsonBuilder:
             self.jdata = old_json.jdata
         else:
             self.jdata = {}
-            self.jdata["version"] = "1.3"
+            self.jdata["version"] = "1.4"
 #            self.jdata["author"] = "Jiajie Zhang"
         
     def set_taxonomy(self, bid_ranks_map):
@@ -254,6 +297,12 @@ class RefJsonBuilder:
 
     def set_taxcode(self, value):
         self.jdata["taxcode"] = value
+
+    def set_corr_seqid_map(self, seqid_map):
+        self.jdata["corr_seqid_map"] = seqid_map
+
+    def set_corr_ranks_map(self, ranks_map):
+        self.jdata["corr_ranks_map"] = ranks_map
 
     def set_metadata(self, metadata):    
         self.jdata["metadata"] = metadata
