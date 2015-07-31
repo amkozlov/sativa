@@ -571,6 +571,7 @@ def print_run_info(config):
     #    print(" P-value for branch length test:   %f" % args.p_value)
         config.log.info(" Output directory:                 %s", os.path.abspath(config.output_dir))
         config.log.info(" Job name / output files prefix:   %s", config.name)
+        config.log.info(" Model of rate heterogeneity:      %s", config.raxml_model)
         config.log.info(" Number of threads:                %d", config.num_threads)
         config.log.info("")
 

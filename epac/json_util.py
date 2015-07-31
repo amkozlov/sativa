@@ -75,7 +75,7 @@ class RefJsonChecker:
         # check v1.1 fields, if needed
         if nver >= 1.1:
             valid = valid and \
-                    self.check_field("ratehet_model", unicode, ["GTRGAMMA", "GTRCAT"])
+                    self.check_field("ratehet_model", unicode)  # ["GTRGAMMA", "GTRCAT"]
 
         # check v1.2 fields, if needed
         if nver >= 1.2:

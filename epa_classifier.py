@@ -50,6 +50,8 @@ class EpaClassifier:
         self.rate = self.refjson.get_rate()
         self.node_height = self.refjson.get_node_height()
         self.cfg.compress_patterns = self.refjson.get_pattern_compression()
+        
+        self.cfg.log.info("Loaded reference tree with %d taxa\n" % len(self.reftree.get_leaves()))
 
         self.classify_helper = TaxClassifyHelper(self.cfg, self.bid_taxonomy_map, args.p_value, self.rate, self.node_height)
         
@@ -103,6 +105,7 @@ class EpaClassifier:
 
         if self.ignore_refalign:
             self.cfg.log.info("Assuming query file contains reference sequences, skipping the alignment step...\n")
+            self.query_count = 0
             with open(self.epa_alignment, "w") as fout:
                 for name, seq, comment, sid in self.seqs.iter_entries():
                     ref_name = self.refjson.get_corr_seqid(EpacConfig.REF_SEQ_PREFIX + name)
@@ -110,8 +113,11 @@ class EpaClassifier:
                         seq_name = ref_name
                     else:
                         seq_name = EpacConfig.QUERY_SEQ_PREFIX + name
+                        self.query_count += 1
                     fout.write(">" + seq_name + "\n" + seq + "\n")
             return
+            
+        self.query_count = len(self.seqs)
             
         # add query seq name prefix to avoid confusion between reference and query sequences
         self.seqs.add_name_prefix(EpacConfig.QUERY_SEQ_PREFIX)
@@ -170,7 +176,7 @@ class EpaClassifier:
         else:        
             self.checkinput(query_fname, minp)
 
-            self.cfg.log.info("Running RAxML-EPA...\n")
+            self.cfg.log.info("Running RAxML-EPA to place %d query sequences...\n" % self.query_count)
             raxml = RaxmlWrapper(config)
             reftree_fname = self.cfg.tmp_fname("ref_%NAME%.tre")
             self.refjson.get_raxml_readable_tree(reftree_fname)
@@ -204,9 +210,8 @@ class EpaClassifier:
         else:
             fo = None
         
-        output2 = ""
+        noassign_list = []
         for place in placements:
-            output = None
             taxon_name = place["n"][0]
             origin_taxon_name = EpacConfig.strip_query_prefix(taxon_name)
             edges = place["p"]
@@ -214,13 +219,13 @@ class EpaClassifier:
             if len(edges) > 0:
                 ranks, lws = self.classify_helper.classify_seq(edges, method, minlw)
                 
-                isnovo = self.novelty_check(place_edge = str(edges[0][0]), ranks =ranks, lws = lws, minlw = minlw)
+                isnovo = self.novelty_check(place_edge = str(edges[0][0]), ranks=ranks, lws=lws, minlw=minlw)
                 rankout = self.print_ranks(ranks, lws, minlw)
                 
                 if rankout == None:
-                    output2 = output2 + origin_taxon_name+ "\t\t\t?\n"
+                    noassign_list.append(origin_taxon_name)
                 else:
-                    output = "%s\t%s\t" % (origin_taxon_name, self.print_ranks(ranks, lws, minlw))
+                    output = "%s\t%s\t" % (origin_taxon_name, rankout)
                     if isnovo: 
                         output += "*"
                     else:
@@ -230,7 +235,7 @@ class EpaClassifier:
                     if fo:
                         fo.write(output + "\n")
             else:
-                output2 = output2 + origin_taxon_name+ "\t\t\t?\n"
+                noassign_list.append(origin_taxon_name)
         
         if os.path.exists(self.noalign):
             with open(self.noalign) as fnoa:
@@ -238,17 +243,16 @@ class EpaClassifier:
                 for line in lines:
                     taxon_name = line.strip()[1:]
                     origin_taxon_name = EpacConfig.strip_query_prefix(taxon_name)
-                    output = "%s\t\t\t?" % origin_taxon_name
-                    if self.cfg.verbose:
-                        print(output)
-                    if fo:
-                        fo.write(output + "\n")
-        
-        if self.cfg.verbose:
-            print(output2)
+                    noassign_list.append(origin_taxon_name)
+                        
+        for taxon_name in noassign_list:
+            output = "%s\t\t\t?" % origin_taxon_name
+            if self.cfg.verbose:
+                print(output)
+            if fo:
+                fo.write(output + "\n")
         
         if fo:
-            fo.write(output2)
             fo.close()
 
         #############################################
@@ -460,6 +464,7 @@ def print_run_info(config, args):
     config.log.info(" Reference:......................%s" % os.path.abspath(args.ref_fname))
     config.log.info(" Query:..........................%s" % os.path.abspath(args.query_fname))
     config.log.info(" Min percent of alignment sites..%s" % args.minalign)
+    config.log.info(" Model of rate heterogeneity:....%s" % config.raxml_model)
     config.log.info(" Min likelihood weight:..........%f" % args.min_lhw)
     config.log.info(" Assignment method:..............%s" % args.method)
     config.log.info(" P-value for Erlang test:........%f" % args.p_value)
