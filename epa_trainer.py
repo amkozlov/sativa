@@ -474,6 +474,8 @@ information needed for taxonomic placement of query sequences.""")
             help="""Output directory""")
     parser.add_argument("-n", dest="output_name", default=None,
             help="""Run name.""")
+    parser.add_argument("-p", dest="rand_seed", type=int, default=None,
+            help="""Random seed to be used with RAxML. Default: current system time.""")
     parser.add_argument("-m", dest="mfresolv_method", choices=["thorough", "fast", "ultrafast"],
             default="thorough", help="""Method of multifurcation resolution: 
             thorough    use stardard constrainted RAxML tree search (default)

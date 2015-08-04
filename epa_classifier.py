@@ -347,7 +347,7 @@ def print_options():
     print("                                   dence measure of the assignment,  assignments  below  this value")
     print("                                   will be discarded. Default: 0 to output all possbile assignments.\n")
     print("    -o outputfile                  Specify the file name for output.\n")
-    print("    -p p-value                     P-value for branch length Erlang test. Default: 0.02\n")
+    print("    -P p-value                     P-value for branch length Erlang test. Default: 0.02\n")
     print("    -minalign min-aligned%         Minimal percent of aligned sites.  Default: 0.9 (90%)\n")
     print("    -m method                      Assignment method 1 or 2")
     print("                                   1: Max sum likelihood (default)")
@@ -379,7 +379,9 @@ def parse_args():
             help="""Directory for result files  (default: same as query file directory)""")
     parser.add_argument("-n", dest="output_name", default=None,
             help="""Run name, will be used to name result files.""")
-    parser.add_argument("-p", dest="p_value", type=float, default=0.0,
+    parser.add_argument("-p", dest="rand_seed", type=int, default=None,
+            help="""Random seed to be used with RAxML. Default: current system time.""")
+    parser.add_argument("-P", dest="p_value", type=float, default=0.0,
             help="""P-value for branch length Erlang test. Default: 0 (filter off)\n""")
     parser.add_argument("-minalign", dest="minalign", type=float, default=0.9,
             help="""Minimal percent of the sites aligned to the reference alignment.  Default: 0.9""")

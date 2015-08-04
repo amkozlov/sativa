@@ -331,6 +331,9 @@ class LeaveOneTest:
             jp = EpaJsonParser(self.jplace_fname)
         else:        
             jp = self.raxml.run_epa(job_name, self.refalign_fname, self.reftree_fname, self.optmod_fname, mode="l1o_seq")
+            if self.cfg.output_interim_files:
+                out_jplace_fname = self.cfg.out_fname("%NAME%.l1out_seq.jplace")
+                self.raxml.copy_epa_jplace(job_name, out_jplace_fname, move=True, mode="l1o_seq")
 
         placements = jp.get_placement()
         seq_count = 0
@@ -397,6 +400,11 @@ class LeaveOneTest:
         # IMPORTANT: don't load the model, since it's invalid for the pruned true !!! 
         optmod_fname=""
         epa_result = self.raxml.run_epa(job_name, self.refalign_fname, reftree_fname, optmod_fname)
+
+        if self.cfg.output_interim_files:
+            out_jplace_fname = self.cfg.out_fname("%NAME%.final_epa.jplace")
+            self.raxml.copy_epa_jplace(job_name, out_jplace_fname, move=True)
+
         reftree_epalbl_str = epa_result.get_std_newick_tree()        
         placements = epa_result.get_placement()
         
@@ -468,13 +476,14 @@ def parse_args():
             help="""Specify the number of CPUs (default: %d)""" % multiprocessing.cpu_count())
     parser.add_argument("-v", dest="verbose", action="store_true",
             help="""Print additional info messages to the console.""")
-
     parser.add_argument("-c", dest="config_fname", default=None,
             help="Config file name.")
     parser.add_argument("-r", dest="ref_fname",
             help="""Specify the reference alignment and taxonomy in json format.""")
     parser.add_argument("-j", dest="jplace_fname", default=None,
             help="""Do not call RAxML EPA, use existing .jplace file as input instead.""")
+    parser.add_argument("-p", dest="rand_seed", type=int, default=None,
+            help="""Random seed to be used with RAxML. Default: current system time.""")
     parser.add_argument("-l", dest="min_lhw", type=float, default=0.,
             help="""A value between 0 and 1, the minimal sum of likelihood weight of
                     an assignment to a specific rank. This value represents a confidence 
@@ -596,8 +605,6 @@ if __name__ == "__main__":
         t.run_epa_trainer()
         trainer_time = time.time() - tr_start_time
         t.load_refjson(config.refjson_fname)
-        if not config.debug:
-            FileUtils.remove_if_exists(config.refjson_fname)
         config.log.info("*** STEP 2: Searching for mislabels ***\n")
     
     l1out_start_time = time.time()

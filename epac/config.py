@@ -67,7 +67,9 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
     def __init__(self, args): 
         self.verbose = args.verbose
         self.debug = args.debug
-        self.refjson_fname = args.ref_fname        
+        self.refjson_fname = args.ref_fname 
+               
+        self.rand_seed = args.rand_seed 
         
         timestamp = "%d" % (time.time()*1000) #datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         if args.output_name:
@@ -311,12 +313,17 @@ class SativaConfig(EpacTrainerConfig):
         self.minlw = args.min_lhw
         self.ranktest = args.ranktest
         self.jplace_fname = args.jplace_fname
+        
+        self.output_interim_files = True
 
         if self.refjson_fname:
             self.load_refjson = True
         else:
             self.load_refjson = False
-            self.refjson_fname = self.tmp_fname("%NAME%.refjson")
+            if self.output_interim_files:
+                self.refjson_fname = self.out_fname("%NAME%.refjson")
+            else:
+                self.refjson_fname = self.tmp_fname("%NAME%.refjson")
         
     def set_defaults(self):
         EpacTrainerConfig.set_defaults(self)

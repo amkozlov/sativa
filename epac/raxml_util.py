@@ -33,8 +33,8 @@ class RaxmlWrapper:
 
     def __init__(self, config): 
         self.cfg = config
-        # set constant seed to achieve reproducibility across runs
-        random.seed(12345)
+        if config.rand_seed:
+            random.seed(config.rand_seed)
     
     def make_raxml_fname(self, stem, job_name, absolute=True):
         fname = "RAxML_" + stem + "." + job_name
