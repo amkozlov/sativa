@@ -7,6 +7,7 @@ import shutil
 import datetime
 import time
 import logging
+import random
 import multiprocessing
 import ConfigParser
 
@@ -75,7 +76,9 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
         if args.output_name:
             self.name = args.output_name
         else:
-            self.name = timestamp
+            self.name = random.randint(1, 99999)
+
+        temp_name = self.name + "_" + timestamp
 
         self.basepath = os.path.dirname(os.path.abspath(__file__))
         self.epac_home = os.path.abspath(os.path.join(self.basepath, os.pardir)) + "/"
@@ -85,7 +88,7 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
             self.temp_dir = args.temp_dir
         else:
             self.temp_dir = os.path.join(self.epac_home, "tmp")
-        self.temp_dir = os.path.join(self.temp_dir, timestamp)
+        self.temp_dir = os.path.join(self.temp_dir, temp_name)
             
         self.raxml_outdir = self.temp_dir
         self.raxml_outdir_abs = os.path.abspath(self.raxml_outdir)

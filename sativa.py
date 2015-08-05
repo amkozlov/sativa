@@ -176,13 +176,13 @@ class LeaveOneTest:
         return output
 
     def sort_mislabels(self):
-        self.mislabels = sorted(self.mislabels, key=itemgetter('inv_level', 'conf'), reverse=True)
+        self.mislabels = sorted(self.mislabels, key=itemgetter('inv_level', 'conf', 'name'), reverse=True)
         for mis_rec in self.mislabels:
             real_lvl = mis_rec["real_level"]
             self.mislabels_cnt[real_lvl] += 1
         
         if self.cfg.ranktest:
-            self.rank_mislabels = sorted(self.rank_mislabels, key=itemgetter('inv_level', 'conf'), reverse=True)
+            self.rank_mislabels = sorted(self.rank_mislabels, key=itemgetter('inv_level', 'conf', 'name'), reverse=True)
             for mis_rec in self.rank_mislabels:
                 real_lvl = mis_rec["real_level"]
                 self.rank_mislabels_cnt[real_lvl] += 1
