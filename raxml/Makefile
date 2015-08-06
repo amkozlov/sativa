@@ -10,6 +10,10 @@ ifeq ("$(USE_AVX)", "yes")
   VERSIONS+=AVX.PTHREADS
 endif
 
+ifeq ("$(USE_AVX2)", "yes")
+  VERSIONS+=AVX2.PTHREADS
+endif
+
 TARFILE=$(wildcard sativa-RAxML-8.*.*gz)
 
 ifeq ("$(DARWIN)","1")
@@ -43,7 +47,7 @@ build:  $(VERSIONS:%=$(RAXML_BIN)%)
 #  which are needed by RAxML)
 
 $(RAXML_BIN)%: unpack.%.stamp
-	MAKEFLAGS= $(MAKE) -C $(<:unpack.%.stamp=builddir.%) -f Makefile.$(@:$(RAXML_BIN)%=%).$(MAKE_SUFFIX)
+	MAKEFLAGS= $(MAKE) -C $(<:unpack.%.stamp=builddir.%) -f Makefile.$(@:$(RAXML_BIN)%=%).$(MAKE_SUFFIX) -j 2
 	cp $(<:unpack.%.stamp=builddir.%)/raxmlHPC-* $@
 
 unpack.%.stamp: $(TARFILE)

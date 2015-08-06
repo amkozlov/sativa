@@ -9,8 +9,8 @@ cpu_has_feature() {
     $SHOW | grep -qi "$1"
 }
 
-
 USE_AVX=no
+USE_AVX2=no
 
 case `uname` in
     Darwin)
@@ -22,6 +22,9 @@ case `uname` in
              if [ "$CLANG_VERSION" \> "3.2" ]; then
                 export USE_AVX=yes
              fi
+             if [ "$CLANG_VERSION" \> "3.3" ]; then
+                export USE_AVX2=yes
+             fi
         fi
         ;;
     Linux)
@@ -31,15 +34,27 @@ case `uname` in
         if [ "$GCC_VERSION" \> "4.6.0" ]; then
            export USE_AVX=yes
         fi
+        if [ "$GCC_VERSION" \> "4.7.0" ]; then
+           export USE_AVX2=yes
+        fi
         ;;
 esac
 
 if [ "$1" == "--no-avx" ]; then
   NO_AVX="yes"
+  USE_AVX=no
+  USE_AVX2=no
 fi
 
 if [ -z $NO_AVX ] && [ $USE_AVX != "yes" ] && cpu_has_feature avx; then
    echo "Your CPU provides AVX instuctions, but you default compiler ($COMPILER_NAME) is too old to support them."
+   echo "Please consider using a more recent compiler (GCC 4.6+ or clang 3.3+) for optimal performance."
+   echo "If you want to use a (slower) SSE3 RAxML version instead, please run this script with --no-avx option."
+   exit
+fi
+
+if [ -z $NO_AVX ] && [ $USE_AVX2 != "yes" ] && cpu_has_feature avx2; then
+   echo "Your CPU provides AVX2 instuctions, but you default compiler ($COMPILER_NAME) is too old to support them."
    echo "Please consider using a more recent compiler (GCC 4.6+ or clang 3.3+) for optimal performance."
    echo "If you want to use a (slower) SSE3 RAxML version instead, please run this script with --no-avx option."
    exit
