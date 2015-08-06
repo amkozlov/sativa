@@ -66,7 +66,8 @@ class RaxmlWrapper:
         else:
             return align_fname
 
-    def run_epa(self, job_name, align_fname, reftree_fname, optmod_fname="", silent=True, mode="epa", subtree_fname=None):
+    def run_epa(self, job_name, align_fname, reftree_fname, optmod_fname="", silent=True, mode="epa", subtree_fname=None,\
+    lhw_acc_threshold=0.999):
         raxml_params = ["-s", align_fname, "-t", reftree_fname]
         # assume that by the time we call EPA reference has been cleaned already (e.g. with previous reduce_alignment call)
         raxml_params += ["--no-seq-check"]
@@ -82,6 +83,8 @@ class RaxmlWrapper:
         else:
             print "ERROR: Invalid RAxML-EPA running mode: %s" % mode
             sys.exit()
+            
+        raxml_params += ["--epa-accumulated-threshold", str(lhw_acc_threshold)]
 
         if self.cfg.epa_use_heuristic in ["TRUE", "YES", "1"]:
             raxml_params += ["-G", str(self.cfg.epa_heur_rate)]            
