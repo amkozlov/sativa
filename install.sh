@@ -34,7 +34,7 @@ case `uname` in
         if [ "$GCC_VERSION" \> "4.6.0" ]; then
            export USE_AVX=yes
         fi
-        if [ "$GCC_VERSION" \> "4.7.0" ]; then
+        if [ "$GCC_VERSION" \> "4.7.0" ] || [ "$GCC_VERSION" = "4.7.0" ]; then
            export USE_AVX2=yes
         fi
         ;;
@@ -61,7 +61,8 @@ if [ -z $NO_AVX ] && [ $USE_AVX2 != "yes" ] && cpu_has_feature avx2; then
 fi
 
 echo "Your compiler: $COMPILER_NAME"
-echo "Using AVX: $USE_AVX"
+echo "Building AVX: $USE_AVX"
+echo "Building AVX2: $USE_AVX2"
 
 cd raxml
 make

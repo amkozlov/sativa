@@ -262,7 +262,6 @@ class EpacTrainerConfig(EpacConfig):
         self.no_hmmer = args.no_hmmer
         self.dup_rank_names  = args.dup_rank_names
         self.wrong_rank_count  = args.wrong_rank_count
-        self.compress_patterns = args.compress_patterns
         self.mfresolv_method = args.mfresolv_method
         self.taxcode_name = args.taxcode_name
         self.rep_num = args.rep_num
@@ -304,7 +303,6 @@ class SativaConfig(EpacTrainerConfig):
     
     def __init__(self, args):
         args.no_hmmer = True
-        args.compress_patterns = True
         args.dup_rank_names = "ignore"
         args.wrong_rank_count = "ignore"
         args.taxassign_method = "1"
@@ -312,6 +310,7 @@ class SativaConfig(EpacTrainerConfig):
 
         EpacTrainerConfig.__init__(self, args)
 
+#        self.compress_patterns = True
         self.taxassign_method = args.taxassign_method
         self.minlw = args.min_lhw
         self.ranktest = args.ranktest

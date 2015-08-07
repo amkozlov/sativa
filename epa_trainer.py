@@ -261,6 +261,7 @@ class RefTreeBuilder:
             fout.write(">" + "DUMMY131313" + "\n")        
             fout.write("A"*self.refalign_width + "\n")        
         
+        # TODO always load model regardless of the config file settings?
         epa_result = self.raxml_wrapper.run_epa(self.epalbl_job_name, self.lblalign_fname, self.reftree_bfu_fname, self.optmod_fname)
         self.reftree_lbl_str = epa_result.get_std_newick_tree()
         self.raxml_version = epa_result.get_raxml_version()
@@ -468,8 +469,6 @@ information needed for taxonomic placement of query sequences.""")
             help="""Specify the number of CPUs.  Default: %d""" % multiprocessing.cpu_count())            
     parser.add_argument("-c", dest="config_fname", default=None,
             help="""Config file name.""")
-    parser.add_argument("-C", dest="compress_patterns", default=False, action="store_true",
-            help="""Enable pattern compression during model optimization under GTRCAT. Default: FALSE""")
     parser.add_argument("-o", dest="output_dir", default=".",
             help="""Output directory""")
     parser.add_argument("-n", dest="output_name", default=None,
