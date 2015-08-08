@@ -375,8 +375,8 @@ def parse_args():
                     an assignment to a specific rank. This value represents a confidence 
                     measure of the assignment, assignments below this value will be discarded. 
                     Default: 0 to output all possbile assignments.""")
-    parser.add_argument("-o", dest="output_dir", default=None,
-            help="""Directory for result files  (default: same as query file directory)""")
+    parser.add_argument("-o", dest="output_dir", default=".",
+            help="""Directory for result files  (default: current working directory)""")
     parser.add_argument("-n", dest="output_name", default=None,
             help="""Run name, will be used to name result files.""")
     parser.add_argument("-p", dest="rand_seed", type=int, default=None,
@@ -442,8 +442,8 @@ def check_args(args):
         sys.exit()
     
     query_dir, query_fname = os.path.split(os.path.abspath(input_fname))
-    if not args.output_dir:
-        args.output_dir = query_dir
+ #   if not args.output_dir:
+ #       args.output_dir = query_dir
         
     if not args.output_name:
         args.output_name = query_fname
