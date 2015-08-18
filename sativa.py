@@ -474,6 +474,8 @@ def parse_args():
             help="""Output directory (default: current).""")
     parser.add_argument("-T", dest="num_threads", type=int, default=multiprocessing.cpu_count(),
             help="""Specify the number of CPUs (default: %d)""" % multiprocessing.cpu_count())
+    parser.add_argument("-N", dest="rep_num", type=int, default=1, 
+            help="""Number of RAxML tree searches (with distinct random seeds) to resolve multifurcation. Default: 1""")
     parser.add_argument("-v", dest="verbose", action="store_true",
             help="""Print additional info messages to the console.""")
     parser.add_argument("-c", dest="config_fname", default=None,

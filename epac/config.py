@@ -306,7 +306,6 @@ class SativaConfig(EpacTrainerConfig):
         args.dup_rank_names = "ignore"
         args.wrong_rank_count = "ignore"
         args.taxassign_method = "1"
-        args.rep_num = 1
 
         EpacTrainerConfig.__init__(self, args)
 

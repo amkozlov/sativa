@@ -38,7 +38,7 @@ class RefTreeBuilder:
     def load_alignment(self):
         in_file = self.cfg.align_fname
         self.input_seqs = None
-        formats = ["fasta", "phylip", "iphylip", "phylip_relaxed", "iphylip_relaxed"]
+        formats = ["fasta", "phylip_relaxed", "iphylip_relaxed", "phylip", "iphylip"]
         for fmt in formats:
             try:
                 self.input_seqs = SeqGroup(sequences=in_file, format = fmt)
@@ -481,7 +481,7 @@ information needed for taxonomic placement of query sequences.""")
             fast        use RF distance as search convergence criterion (RAxML -D option)
             ultrafast   optimize model+branch lengths only (RAxML -f e option)""")
     parser.add_argument("-N", dest="rep_num", type=int, default=1, 
-            help="""Number of RAxML runs (with distinct random seeds). Default: 1""")
+            help="""Number of RAxML tree searches (with distinct random seeds). Default: 1""")
     parser.add_argument("-x", dest="taxcode_name", choices=["bac", "bot", "zoo", "vir"], type = str.lower,
             help="""Taxonomic code: BAC(teriological), BOT(anical), ZOO(logical), VIR(ological)""")
     parser.add_argument("-v", dest="verbose", action="store_true",
