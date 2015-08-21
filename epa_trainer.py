@@ -186,7 +186,7 @@ class RefTreeBuilder:
         rt = self.reftree_multif
 
         tax_map = self.taxonomy.get_map()
-        self.taxtree_helper = TaxTreeHelper(tax_map, self.cfg)
+        self.taxtree_helper = TaxTreeHelper(self.cfg, tax_map)
         self.taxtree_helper.set_mf_rooted_tree(rt)
         outgr = self.taxtree_helper.get_outgroup()
         outgr_size = len(outgr.get_leaves())

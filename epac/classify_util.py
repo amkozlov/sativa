@@ -4,14 +4,15 @@ from erlang import erlang
 import math
 
 class TaxTreeHelper:
-    def __init__(self, tax_map, cfg):
+    def __init__(self, cfg, tax_map, tax_tree=None):
         self.origin_taxonomy = tax_map
         self.cfg = cfg
         self.outgroup = None
         self.mf_rooted_tree = None
         self.bf_rooted_tree = None
-        self.tax_tree = None
+        self.tax_tree = tax_tree
         self.bid_taxonomy_map = None
+        self.ranks_set = set()
     
     def set_mf_rooted_tree(self, rt):
         self.mf_rooted_tree = rt
@@ -106,14 +107,14 @@ class TaxTreeHelper:
                 while rank_level >= 0 and lchild.ranks[rank_level] != rchild.ranks[rank_level]:
                     rank_level -= 1
                 node.add_feature("rank_level", rank_level)
-                node_ranks = [Taxonomy.EMPTY_RANK] * 7
+                node_ranks = [Taxonomy.EMPTY_RANK] * max(7, len(lchild.ranks))
                 if rank_level >= 0:
                     node_ranks[0:rank_level+1] = lchild.ranks[0:rank_level+1]
                     node.name = lchild.ranks[rank_level]
                 else:
                     node.name = "Undefined"
-                    if hasattr(node, "B") and self.cfg.verbose:
-                        print "INFO: no taxonomic annotation for branch %s (reason: children belong to different kingdoms)" % node.B
+                    if hasattr(node, "B"):
+                        config.log.debug("INFO: no taxonomic annotation for branch %s (reason: children belong to different kingdoms)", node.B)
 
                 node.add_feature("ranks", node_ranks)
         
@@ -126,7 +127,23 @@ class TaxTreeHelper:
                 parent = node.up                
                 self.bid_taxonomy_map[node.B] = parent.ranks
 #                bid_taxonomy_map[node.B] = node.ranks
+                self.ranks_set.add(Taxonomy.get_rank_uid(parent.ranks))
 
+    def get_seq_ranks_from_tree(self, seq_name):
+        nodes = self.get_tax_tree().get_leaves_by_name(seq_name)
+        if len(nodes) != 1:
+            errmsg = "FATAL ERROR: Sequence %s is not found in the taxonomic tree, or is present more than once!" % seq_name
+            self.cfg.exit_fatal_error(errmsg)
+        seq_node = nodes[0]
+        ranks = Taxonomy.split_rank_uid(seq_node.up.name)
+        return ranks
+
+    def strip_missing_ranks(self, ranks):
+        rank_level = len(ranks)
+        while not Taxonomy.get_rank_uid(ranks[0:rank_level]) in self.ranks_set and rank_level > 0:
+            rank_level -= 1
+        
+        return ranks[0:rank_level]   
     
 class TaxClassifyHelper:
     def __init__(self, cfg, bid_taxonomy_map, brlen_pv = 0., sp_rate = 0., node_height = []):
@@ -260,8 +277,8 @@ class TaxClassifyHelper:
             if lowest_rank:
                 rw_own[lowest_rank] = rw_own.get(lowest_rank, 0) + lweight
                 rb[lowest_rank] = br_id
-            elif self.cfg.verbose:
-                print "WARNING: no annotation for branch ", br_id
+            else:
+                config.log.debug("WARNING: no annotation for branch ", br_id)
             
         # if all branches have empty ranks only, just return this placement
         if len(rw_total) == 0:

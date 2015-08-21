@@ -177,14 +177,17 @@ class Taxonomy:
     @staticmethod    
     def lowest_assigned_rank_level(ranks):
         rank_level = len(ranks)-1
-        while ranks[rank_level] == Taxonomy.EMPTY_RANK:
+        while rank_level >= 0 and ranks[rank_level] == Taxonomy.EMPTY_RANK:
             rank_level -= 1
         return rank_level
 
     @staticmethod    
     def lowest_assigned_rank(ranks):
         rank_level = Taxonomy.lowest_assigned_rank_level(ranks)
-        return ranks[rank_level]
+        if rank_level >= 0:
+            return ranks[rank_level]
+        else:
+            return None
         
     @staticmethod    
     def get_rank_uid(ranks, rank_level=-1):

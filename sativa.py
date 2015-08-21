@@ -77,6 +77,7 @@ class LeaveOneTest:
             self.cfg.raxml_model = self.refjson.get_ratehet_model()
 
         self.classify_helper = TaxClassifyHelper(self.cfg, self.bid_taxonomy_map, self.brlen_pv, self.rate, self.node_height)
+        self.taxtree_helper = TaxTreeHelper(self.cfg, self.origin_taxonomy, self.tax_tree)
         
         tax_code_name = self.refjson.get_taxcode()
         self.tax_code = TaxCode(tax_code_name)
@@ -188,7 +189,7 @@ class LeaveOneTest:
                 self.rank_mislabels_cnt[real_lvl] += 1
     
     def write_stats(self, toFile=False):
-        self.cfg.log.info("Mislabels counts by ranks:")
+        self.cfg.log.info("Mislabeled sequences by rank:")
         seq_sum = 0
         rank_sum = 0
         stats = []
@@ -248,17 +249,7 @@ class LeaveOneTest:
                         print(output) 
                         
         self.write_stats()
-
-       
-    def get_orig_ranks(self, seq_name):
-        nodes = self.tax_tree.get_leaves_by_name(seq_name)
-        if len(nodes) != 1:
-            print "FATAL ERROR: Sequence %s is not found in the taxonomic tree, or is present more than once!" % seq_name
-            sys.exit()
-        seq_node = nodes[0]
-        orig_ranks = Taxonomy.split_rank_uid(seq_node.up.name)
-        return orig_ranks
-    
+   
     def run_leave_subtree_out_test(self):
         job_name = self.cfg.subst_name("l1out_rank_%NAME%")
 #        if self.jplace_fname:
@@ -328,7 +319,7 @@ class LeaveOneTest:
     def run_leave_seq_out_test(self):
         job_name = self.cfg.subst_name("l1out_seq_%NAME%")
         if self.cfg.jplace_fname:
-            jp = EpaJsonParser(self.jplace_fname)
+            jp = EpaJsonParser(self.cfg.jplace_fname)
         else:        
             jp = self.raxml.run_epa(job_name, self.refalign_fname, self.reftree_fname, self.optmod_fname, mode="l1o_seq")
             if self.cfg.output_interim_files:
@@ -341,7 +332,8 @@ class LeaveOneTest:
             seq_name = place["n"][0]
             
             # get original taxonomic label
-            orig_ranks = self.get_orig_ranks(seq_name)
+#            orig_ranks = self.get_orig_ranks(seq_name)
+            orig_ranks =  self.taxtree_helper.get_seq_ranks_from_tree(seq_name)
 
             # get EPA tax label
             ranks, lws = self.classify_seq(place)
@@ -385,13 +377,47 @@ class LeaveOneTest:
             
         self.mislabels = []
 
-        th = TaxTreeHelper(self.origin_taxonomy, self.cfg)
+        th = TaxTreeHelper(self.cfg, self.origin_taxonomy)
         th.set_mf_rooted_tree(tmp_taxtree)
             
-        self.run_epa_once(tmp_reftree, th)
+        epa_result = self.run_epa_once(tmp_reftree)
+        
+        reftree_epalbl_str = epa_result.get_std_newick_tree()        
+        placements = epa_result.get_placement()
+        
+        # update branchid-taxonomy mapping to account for possible changes in branch numbering
+        reftree_tax = Tree(reftree_epalbl_str)
+        th.set_bf_unrooted_tree(reftree_tax)
+        bid_tax_map = th.get_bid_taxonomy_map()
+        
+        cl = TaxClassifyHelper(self.cfg, bid_tax_map, self.brlen_pv, self.rate, self.node_height)
+        
+#        newtax_fname = self.cfg.subst_name("newtax_%NAME%.tre")
+#        th.get_tax_tree().write(outfile=newtax_fname, format=3)
+
+        for place in placements:
+            seq_name = place["n"][0]
+
+            # get original taxonomic label
+            orig_ranks = self.taxtree_helper.get_seq_ranks_from_tree(seq_name)
+
+            # EXPERIMENTAL FEATURE - disabled for now!
+            # It could happen that certain ranks were present in the "original" reference tree, but 
+            # are completely missing in the pruned tree (e.g., all seqs of a species were considered "suspicious" 
+            # after the leave-one-out test and thus pruned)
+            # In this case, EPA has no chance to infer full original taxonomic annotation (=species) since the corresponding clade
+            # is now missing. To account for this fact, we amend the original taxonomic annotation and set ranks missing from  
+            # pruned tree to "Undefined".
+#            orig_ranks = th.strip_missing_ranks(orig_ranks)
+#            print orig_ranks
+            
+            # get EPA tax label
+            ranks, lws = cl.classify_seq(place["p"])
+            # check if they match
+            mis_rec = self.check_seq_tax_labels(seq_name, orig_ranks, ranks, lws)
             
 
-    def run_epa_once(self, reftree, th):
+    def run_epa_once(self, reftree):
         reftree_fname = self.cfg.tmp_fname("final_ref_%NAME%.tre")
         job_name = self.cfg.subst_name("final_epa_%NAME%")
 
@@ -405,25 +431,7 @@ class LeaveOneTest:
             out_jplace_fname = self.cfg.out_fname("%NAME%.final_epa.jplace")
             self.raxml.copy_epa_jplace(job_name, out_jplace_fname, move=True)
 
-        reftree_epalbl_str = epa_result.get_std_newick_tree()        
-        placements = epa_result.get_placement()
-        
-        # update branchid-taxonomy mapping to account for possible changes in branch numbering
-        reftree_tax = Tree(reftree_epalbl_str)
-        th.set_bf_unrooted_tree(reftree_tax)
-        bid_tax_map = th.get_bid_taxonomy_map()
-        
-        cl = TaxClassifyHelper(self.cfg, bid_tax_map, self.brlen_pv, self.rate, self.node_height)
-
-        for place in placements:
-            seq_name = place["n"][0]
-
-            # get original taxonomic label
-            orig_ranks = self.get_orig_ranks(seq_name)
-            # get EPA tax label
-            ranks, lws = cl.classify_seq(place["p"])
-            # check if they match
-            mis_rec = self.check_seq_tax_labels(seq_name, orig_ranks, ranks, lws)
+        return epa_result
 
     def run_test(self):
         self.raxml = RaxmlWrapper(self.cfg)
@@ -449,7 +457,7 @@ class LeaveOneTest:
 
         self.sort_mislabels()
         self.write_mislabels()
-        config.log.info("\nPercentage of mislabeled sequences: %.2f %%", (float(len(self.mislabels)) / self.reftree_size * 100))
+        config.log.info("\nTotal mislabels: %d / %.2f %%", len(self.mislabels), (float(len(self.mislabels)) / self.reftree_size * 100))
 
         if not self.cfg.debug:
             FileUtils.remove_if_exists(self.reftree_fname)
