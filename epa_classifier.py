@@ -9,7 +9,7 @@ try:
     
     from epac.ete2 import Tree, SeqGroup
     from epac.argparse import ArgumentParser
-    from epac.config import EpacConfig
+    from epac.config import EpacConfig,EpacClassifierConfig
     from epac.raxml_util import RaxmlWrapper, FileUtils
     from epac.json_util import RefJsonParser, RefJsonChecker, EpaJsonParser
     from epac.msa import muscle, hmmer
@@ -53,7 +53,7 @@ class EpaClassifier:
         
         self.cfg.log.info("Loaded reference tree with %d taxa\n" % len(self.reftree.get_leaves()))
 
-        self.classify_helper = TaxClassifyHelper(self.cfg, self.bid_taxonomy_map, args.p_value, self.rate, self.node_height)
+        self.classify_helper = TaxClassifyHelper(self.cfg, self.bid_taxonomy_map, self.rate, self.node_height)
         
     def require_muscle(self):
         basepath = os.path.dirname(os.path.abspath(__file__))
@@ -170,7 +170,7 @@ class EpaClassifier:
             return ss[:-1] + "\t" + css[:-1]
 
 
-    def classify(self, query_fname, method = "1", minlw = 0.0, pv = 0.02, minp = 0.9, ptp = False):
+    def classify(self, query_fname, minp = 0.9, ptp = False):
         if self.jplace_fname:
             jp = EpaJsonParser(self.jplace_fname)
         else:        
@@ -215,12 +215,11 @@ class EpaClassifier:
             taxon_name = place["n"][0]
             origin_taxon_name = EpacConfig.strip_query_prefix(taxon_name)
             edges = place["p"]
-#            edges = self.erlang_filter(edges, p = pv)
             if len(edges) > 0:
-                ranks, lws = self.classify_helper.classify_seq(edges, method, minlw)
+                ranks, lws = self.classify_helper.classify_seq(edges)
                 
-                isnovo = self.novelty_check(place_edge = str(edges[0][0]), ranks=ranks, lws=lws, minlw=minlw)
-                rankout = self.print_ranks(ranks, lws, minlw)
+                isnovo = self.novelty_check(place_edge = str(edges[0][0]), ranks=ranks, lws=lws)
+                rankout = self.print_ranks(ranks, lws, self.cfg.min_lhw)
                 
                 if rankout == None:
                     noassign_list.append(origin_taxon_name)
@@ -285,7 +284,7 @@ class EpaClassifier:
                 fo2.close()
         #############################################
         
-    def novelty_check(self, place_edge, ranks, lws, minlw):
+    def novelty_check(self, place_edge, ranks, lws):
         """If the taxonomic assignment is not assigned to the genus level, 
         we need to check if it is due to the incomplete reference taxonomy or 
         it is likely to be something new:
@@ -309,7 +308,7 @@ class EpaClassifier:
                     break
                 else:
                     lowrank = lowrank + 1
-                    if lw >=0 and lw < minlw:
+                    if lw >=0 and lw < self.cfg.min_lhw:
                         return True
         
         if lowrank >= 5 and not ranks[lowrank] == "-":
@@ -385,7 +384,7 @@ def parse_args():
             help="""P-value for branch length Erlang test. Default: 0 (filter off)\n""")
     parser.add_argument("-minalign", dest="minalign", type=float, default=0.9,
             help="""Minimal percent of the sites aligned to the reference alignment.  Default: 0.9""")
-    parser.add_argument("-m", dest="method", default="1",
+    parser.add_argument("-m", dest="taxassign_method", default="1",
             help="""Assignment method 1 or 2
                     1: Max sum of likelihood weights (default)
                     2: Max likelihood weight placement""")
@@ -493,13 +492,13 @@ if __name__ == "__main__":
             sys.exit()
     
     check_args(args)
-    config = EpacConfig(args)
+    config = EpacClassifierConfig(args)
     print_run_info(config, args)
     
     start_time = time.time()
    
     ec = EpaClassifier(config, args)
-    ec.classify(query_fname = args.query_fname, method = args.method, minlw = args.min_lhw, pv = args.p_value, minp = args.minalign, ptp = args.ptp)
+    ec.classify(query_fname = args.query_fname, minp = args.minalign, ptp = args.ptp)
     
     config.clean_tempdir()
     

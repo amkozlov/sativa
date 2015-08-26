@@ -299,6 +299,15 @@ class EpacTrainerConfig(EpacConfig):
 
         return clade_list
         
+class EpacClassifierConfig(EpacConfig):
+
+    def __init__(self, args):
+        EpacConfig.__init__(self, args)
+
+        self.taxassign_method = args.taxassign_method
+        self.min_lhw = args.min_lhw
+        self.brlen_pv = args.brlen_pv
+
 class SativaConfig(EpacTrainerConfig):
     
     def __init__(self, args):
@@ -311,7 +320,8 @@ class SativaConfig(EpacTrainerConfig):
 
 #        self.compress_patterns = True
         self.taxassign_method = args.taxassign_method
-        self.minlw = args.min_lhw
+        self.min_lhw = args.min_lhw
+        self.brlen_pv = args.brlen_pv
         self.ranktest = args.ranktest
         self.jplace_fname = args.jplace_fname
         

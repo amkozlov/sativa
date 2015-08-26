@@ -203,12 +203,15 @@ class Taxonomy:
         else:
             return ranks
             
-    def __init__(self, tax_fname="", prefix=""):
+    def __init__(self, prefix="", tax_fname="", tax_map=None):
         self.prefix = prefix
-        self.seq_ranks_map = {}
+        
         tree_nodes = []
         self.common_ranks = set([])
-        if tax_fname:
+        if tax_map:
+            self.seq_ranks_map = tax_map
+        elif tax_fname:
+            self.seq_ranks_map = {}
             self.load_taxonomy(tax_fname)
 
     def get_common_ranks(self):

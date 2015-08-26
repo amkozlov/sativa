@@ -37,9 +37,6 @@ class LeaveOneTest:
         self.optmod_fname = self.cfg.tmp_fname("%NAME%.opt")
         self.reftree_fname = self.cfg.tmp_fname("ref_%NAME%.tre")
 
-        # switch off branch length filter
-        self.brlen_pv = 0.
-
         self.mislabels = []
         self.mislabels_cnt = []
         self.rank_mislabels = []
@@ -76,11 +73,15 @@ class LeaveOneTest:
         if self.cfg.epa_load_optmod:
             self.cfg.raxml_model = self.refjson.get_ratehet_model()
 
-        self.classify_helper = TaxClassifyHelper(self.cfg, self.bid_taxonomy_map, self.brlen_pv, self.rate, self.node_height)
+        self.classify_helper = TaxClassifyHelper(self.cfg, self.bid_taxonomy_map, self.rate, self.node_height)
         self.taxtree_helper = TaxTreeHelper(self.cfg, self.origin_taxonomy, self.tax_tree)
         
         tax_code_name = self.refjson.get_taxcode()
         self.tax_code = TaxCode(tax_code_name)
+        
+        self.taxonomy = Taxonomy(prefix=EpacConfig.REF_SEQ_PREFIX, tax_map=self.origin_taxonomy)
+        self.tax_common_ranks = self.taxonomy.get_common_ranks()
+#        print "Common ranks: ", self.tax_common_ranks
 
         self.mislabels_cnt = [0] * TaxCode.UNI_TAX_LEVELS
         self.rank_mislabels_cnt = [0] * TaxCode.UNI_TAX_LEVELS
@@ -95,35 +96,53 @@ class LeaveOneTest:
     def classify_seq(self, placement):
         edges = placement["p"]
         if len(edges) > 0:
-            return self.classify_helper.classify_seq(edges, self.cfg.taxassign_method, self.cfg.minlw)
+            return self.classify_helper.classify_seq(edges)
         else:
             print "ERROR: no placements! something is definitely wrong!"
 
     def check_seq_tax_labels(self, seq_name, orig_ranks, ranks, lws):
-        mislabel_lvl = -1
-        min_len = min(len(orig_ranks),len(ranks))
-        for rank_lvl in range(min_len):
-            if ranks[rank_lvl] != Taxonomy.EMPTY_RANK and ranks[rank_lvl] != orig_ranks[rank_lvl]:
-                mislabel_lvl = rank_lvl
-                break
-
-        if mislabel_lvl >= 0:
-            real_lvl = self.tax_code.guess_rank_level(orig_ranks, mislabel_lvl)
+        mis_rec = None
+        
+        num_common_ranks = len(self.tax_common_ranks)
+        orig_rank_level = Taxonomy.lowest_assigned_rank_level(orig_ranks)
+        new_rank_level = Taxonomy.lowest_assigned_rank_level(ranks)
+        #if new_rank_level < 0 or (new_rank_level < num_common_ranks and orig_rank_level >= num_common_ranks):
+        if new_rank_level < 0:
             mis_rec = {}
             mis_rec['name'] = seq_name
-            mis_rec['orig_level'] = mislabel_lvl
-            mis_rec['real_level'] = real_lvl
-            mis_rec['level_name'] = self.tax_code.rank_level_name(real_lvl)[0]
-            mis_rec['inv_level'] = -1 * real_lvl  # just for sorting
+            mis_rec['orig_level'] = -1
+            mis_rec['real_level'] = 0
+            mis_rec['level_name'] = "[NotIngroup]"
+            mis_rec['inv_level'] = -1 * mis_rec['real_level']  # just for sorting
             mis_rec['orig_ranks'] = orig_ranks
-            mis_rec['ranks'] = ranks
-            mis_rec['lws'] = lws
-            mis_rec['conf'] = lws[mislabel_lvl]
+            mis_rec['ranks'] = []
+            mis_rec['lws'] = [1.0]
+            mis_rec['conf'] = lws[0]
+        else:
+            mislabel_lvl = -1
+            min_len = min(len(orig_ranks),len(ranks))
+            for rank_lvl in range(min_len):
+                if ranks[rank_lvl] != Taxonomy.EMPTY_RANK and ranks[rank_lvl] != orig_ranks[rank_lvl]:
+                    mislabel_lvl = rank_lvl
+                    break
+
+            if mislabel_lvl >= 0:
+                real_lvl = self.tax_code.guess_rank_level(orig_ranks, mislabel_lvl)
+                mis_rec = {}
+                mis_rec['name'] = seq_name
+                mis_rec['orig_level'] = mislabel_lvl
+                mis_rec['real_level'] = real_lvl
+                mis_rec['level_name'] = self.tax_code.rank_level_name(real_lvl)[0]
+                mis_rec['inv_level'] = -1 * mis_rec['real_level']  # just for sorting
+                mis_rec['orig_ranks'] = orig_ranks
+                mis_rec['ranks'] = ranks
+                mis_rec['lws'] = lws
+                mis_rec['conf'] = lws[mislabel_lvl]
+    
+        if mis_rec:
             self.mislabels.append(mis_rec)
             
-            return mis_rec
-        else:
-            return None
+        return mis_rec
 
     def check_rank_tax_labels(self, rank_name, orig_ranks, ranks, lws):
         mislabel_lvl = -1
@@ -167,8 +186,14 @@ class LeaveOneTest:
         uncorr_orig_ranks = self.refjson.get_uncorr_ranks(mis_rec['orig_ranks'])
         uncorr_ranks = self.refjson.get_uncorr_ranks(mis_rec['ranks'])
         output = uncorr_name + "\t"
-        output += "%s\t%s\t%s\t%.3f\t" % (mis_rec['level_name'], 
-            uncorr_orig_ranks[lvl], uncorr_ranks[lvl], mis_rec['lws'][lvl])
+      
+        if lvl >= 0:
+            output += "%s\t%s\t%s\t%.3f\t" % (mis_rec['level_name'], 
+                uncorr_orig_ranks[lvl], uncorr_ranks[lvl], mis_rec['lws'][lvl])
+        else:
+            output += "%s\t%s\t%s\t%.3f\t" % (mis_rec['level_name'], 
+                "NA", "NA", mis_rec['lws'][0])
+        
         output += Taxonomy.lineage_str(uncorr_orig_ranks) + "\t"
         output += Taxonomy.lineage_str(uncorr_ranks) + "\t"
         output += ";".join(["%.3f" % conf for conf in mis_rec['lws']])
@@ -193,8 +218,11 @@ class LeaveOneTest:
         seq_sum = 0
         rank_sum = 0
         stats = []
-        for i in range(1, len(self.mislabels_cnt)):
-            rname = self.tax_code.rank_level_name(i)[0].ljust(10)
+        for i in range(len(self.mislabels_cnt)):
+            if i > 0:
+                rname = self.tax_code.rank_level_name(i)[0].ljust(12)
+            else:
+                rname = "[NotIngroup]"
             if self.mislabels_cnt[i] > 0:
                 seq_sum += self.mislabels_cnt[i]
 #                    output = "%s:\t%d" % (rname, seq_sum)
@@ -390,7 +418,7 @@ class LeaveOneTest:
         th.set_bf_unrooted_tree(reftree_tax)
         bid_tax_map = th.get_bid_taxonomy_map()
         
-        cl = TaxClassifyHelper(self.cfg, bid_tax_map, self.brlen_pv, self.rate, self.node_height)
+        cl = TaxClassifyHelper(self.cfg, bid_tax_map, self.rate, self.node_height)
         
 #        newtax_fname = self.cfg.subst_name("newtax_%NAME%.tre")
 #        th.get_tax_tree().write(outfile=newtax_fname, format=3)
@@ -410,9 +438,12 @@ class LeaveOneTest:
             # pruned tree to "Undefined".
 #            orig_ranks = th.strip_missing_ranks(orig_ranks)
 #            print orig_ranks
-            
+
             # get EPA tax label
             ranks, lws = cl.classify_seq(place["p"])
+
+            #print seq_name, ": ", orig_ranks, "--->", ranks
+
             # check if they match
             mis_rec = self.check_seq_tax_labels(seq_name, orig_ranks, ranks, lws)
             
@@ -441,7 +472,7 @@ class LeaveOneTest:
         self.refjson.get_raxml_readable_tree(self.reftree_fname)
         self.refalign_fname = self.refjson.get_alignment(self.tmp_refaln)        
         self.refjson.get_binary_model(self.optmod_fname)
-
+        
         if self.cfg.ranktest:
             config.log.info("Running the leave-one-rank-out test...\n")
             subtree_count = self.run_leave_subtree_out_test()
@@ -458,11 +489,6 @@ class LeaveOneTest:
         self.sort_mislabels()
         self.write_mislabels()
         config.log.info("\nTotal mislabels: %d / %.2f %%", len(self.mislabels), (float(len(self.mislabels)) / self.reftree_size * 100))
-
-        if not self.cfg.debug:
-            FileUtils.remove_if_exists(self.reftree_fname)
-            FileUtils.remove_if_exists(self.optmod_fname)
-            FileUtils.remove_if_exists(self.refalign_fname)
 
 def parse_args():
     parser = ArgumentParser(usage="%(prog)s -s ALIGNMENT -t TAXONOMY -x {BAC,BOT,ZOO,VIR} [options]",
@@ -494,6 +520,8 @@ def parse_args():
             help="""Do not call RAxML EPA, use existing .jplace file as input instead.""")
     parser.add_argument("-p", dest="rand_seed", type=int, default=None,
             help="""Random seed to be used with RAxML. Default: current system time.""")
+    parser.add_argument("-P", dest="brlen_pv", type=float, default=1e-4,
+            help="""P-value for branch length Erlang test. Default: 10^-6\n""")
     parser.add_argument("-l", dest="min_lhw", type=float, default=0.,
             help="""A value between 0 and 1, the minimal sum of likelihood weight of
                     an assignment to a specific rank. This value represents a confidence 
@@ -504,9 +532,6 @@ def parse_args():
             thorough    use stardard constrainted RAxML tree search (default)
             fast        use RF distance as search convergence criterion (RAxML -D option)
             ultrafast   optimize model+branch lengths only (RAxML -f e option)""")
-#    parser.add_argument("-p", dest="p_value", type=float, default=0.001,
-#            help="""P-value for branch length Erlang test. Default: 0.001\n""")
-
     parser.add_argument("-debug", dest="debug", action="store_true",
             help="""Debug mode, intermediate files will not be cleaned up.""")
     parser.add_argument("-ranktest", dest="ranktest", action="store_true",
@@ -587,10 +612,10 @@ def print_run_info(config):
             config.log.info(" EPA jplace file:                  %s", config.jplace_fname)
         #config.log.info(" Min likelihood weight:            %f", args.min_lhw)
 #        config.log.info(" Assignment method:                %s", args.method)
-    #    print(" P-value for branch length test:   %f" % args.p_value)
         config.log.info(" Output directory:                 %s", os.path.abspath(config.output_dir))
         config.log.info(" Job name / output files prefix:   %s", config.name)
         config.log.info(" Model of rate heterogeneity:      %s", config.raxml_model)
+        config.log.info(" P-value for branch length test:   %g", config.brlen_pv)
         config.log.info(" Number of threads:                %d", config.num_threads)
         config.log.info("")
 

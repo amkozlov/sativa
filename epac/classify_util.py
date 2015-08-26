@@ -107,14 +107,14 @@ class TaxTreeHelper:
                 while rank_level >= 0 and lchild.ranks[rank_level] != rchild.ranks[rank_level]:
                     rank_level -= 1
                 node.add_feature("rank_level", rank_level)
-                node_ranks = [Taxonomy.EMPTY_RANK] * max(7, len(lchild.ranks))
+                node_ranks = [Taxonomy.EMPTY_RANK] * max(len(lchild.ranks),len(rchild.ranks)) 
                 if rank_level >= 0:
                     node_ranks[0:rank_level+1] = lchild.ranks[0:rank_level+1]
                     node.name = lchild.ranks[rank_level]
                 else:
                     node.name = "Undefined"
                     if hasattr(node, "B"):
-                        config.log.debug("INFO: no taxonomic annotation for branch %s (reason: children belong to different kingdoms)", node.B)
+                        self.cfg.log.debug("INFO: no taxonomic annotation for branch %s (reason: children belong to different kingdoms)", node.B)
 
                 node.add_feature("ranks", node_ranks)
         
@@ -146,18 +146,19 @@ class TaxTreeHelper:
         return ranks[0:rank_level]   
     
 class TaxClassifyHelper:
-    def __init__(self, cfg, bid_taxonomy_map, brlen_pv = 0., sp_rate = 0., node_height = []):
+    def __init__(self, cfg, bid_taxonomy_map, sp_rate = 0., node_height = []):
         self.cfg = cfg
         self.bid_taxonomy_map = bid_taxonomy_map
-        self.brlen_pv = brlen_pv
         self.sp_rate = sp_rate
         self.node_height = node_height
         self.erlang = erlang()
 
-    def classify_seq(self, edges, method = "1", minlw = 0.):
+    def classify_seq(self, edges, minlw = None):
+        if not minlw:
+            minlw = self.cfg.min_lhw
         if len(edges) > 0:
             edges = self.erlang_filter(edges)
-            if method == "1":
+            if self.cfg.taxassign_method == "1":
                 ranks, lws = self.assign_taxonomy_maxsum(edges, minlw)
             else:
                 ranks, lws = self.assign_taxonomy_maxlh(edges)
@@ -166,7 +167,7 @@ class TaxClassifyHelper:
             return None, None      
             
     def erlang_filter(self, edges):
-        if self.brlen_pv == 0.:
+        if self.cfg.brlen_pv == 0.:
             return edges
             
         newedges = []
@@ -174,8 +175,10 @@ class TaxClassifyHelper:
             edge_nr = str(edge[0])
             pendant_length = edge[4]
             pv = self.erlang.one_tail_test(rate = self.sp_rate, k = int(self.node_height[edge_nr]), x = pendant_length)
-            if pv >= self.brlen_pv:
+            if pv >= self.cfg.brlen_pv:
                 newedges.append(edge)
+#            else:
+#                self.cfg.log.debug("Edge ignored: [%s, %f], p = %.12f", edge_nr, pendant_length, pv)
         
         if len(newedges) == 0:
             return newedges
@@ -192,6 +195,20 @@ class TaxClassifyHelper:
             edge[2] = math.exp(lh - max_lh) / sum_lh
 
         return newedges
+
+    # "all or none" filter: return empty set iff *all* brlens are below the threshold
+    def erlang_filter2(self, edges):
+        if self.cfg.brlen_pv == 0.:
+            return edges
+            
+        for edge in edges:
+            edge_nr = str(edge[0])
+            pendant_length = edge[4]
+            pv = self.erlang.one_tail_test(rate = self.sp_rate, k = int(self.node_height[edge_nr]), x = pendant_length)
+            if pv >= self.cfg.brlen_pv:
+                return edges
+                
+        return []
      
     def assign_taxonomy_maxlh(self, edges):
         #Calculate the sum of likelihood weight for each rank
@@ -278,7 +295,7 @@ class TaxClassifyHelper:
                 rw_own[lowest_rank] = rw_own.get(lowest_rank, 0) + lweight
                 rb[lowest_rank] = br_id
             else:
-                config.log.debug("WARNING: no annotation for branch ", br_id)
+                self.cfg.log.debug("WARNING: no annotation for branch ", br_id)
             
         # if all branches have empty ranks only, just return this placement
         if len(rw_total) == 0:

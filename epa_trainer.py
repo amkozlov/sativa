@@ -319,7 +319,7 @@ class RefTreeBuilder:
                         errmsg = "FATAL ERROR: More than one tree branch without EPA label (calc_node_heights)"
                         self.cfg.exit_fatal_error(errmsg)
                 else:
-                    species_rank = self.bid_ranks_map[node.B][6]
+                    species_rank = self.bid_ranks_map[node.B][-1]
                 bid = node.B
                 if node.is_leaf() or species_rank != Taxonomy.EMPTY_RANK:
                     nh_map[bid] = 1
@@ -426,7 +426,7 @@ class RefTreeBuilder:
     # top-level function to build a reference tree    
     def build_ref_tree(self):
         self.cfg.log.info("=> Loading taxonomy from file: %s ...\n" , self.cfg.taxonomy_fname)
-        self.taxonomy = Taxonomy(self.cfg.taxonomy_fname, EpacConfig.REF_SEQ_PREFIX)
+        self.taxonomy = Taxonomy(prefix=EpacConfig.REF_SEQ_PREFIX, tax_fname=self.cfg.taxonomy_fname)
         self.cfg.log.info("==> Loading reference alignment from file: %s ...\n" , self.cfg.align_fname)
         self.load_alignment()
         self.cfg.log.info("===> Building a multifurcating tree from taxonomy with %d seqs ...\n" , self.taxonomy.seq_count())
