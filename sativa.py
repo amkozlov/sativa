@@ -521,7 +521,7 @@ def parse_args():
     parser.add_argument("-p", dest="rand_seed", type=int, default=None,
             help="""Random seed to be used with RAxML. Default: current system time.""")
     parser.add_argument("-P", dest="brlen_pv", type=float, default=1e-4,
-            help="""P-value for branch length Erlang test. Default: 10^-6\n""")
+            help="""P-value for branch length Erlang test. Default: 10^-4\n""")
     parser.add_argument("-l", dest="min_lhw", type=float, default=0.,
             help="""A value between 0 and 1, the minimal sum of likelihood weight of
                     an assignment to a specific rank. This value represents a confidence 
