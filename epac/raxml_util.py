@@ -164,6 +164,7 @@ class RaxmlWrapper:
     def run_multiple(self, job_name, params, repnum, silent=True):    
         best_lh = float("-inf")
         best_jobname = None
+        
         for i in range(repnum):
             rep_jobname = "%s.%d" % (job_name, i)
             invoc_str = self.run(rep_jobname, params, silent)
@@ -171,6 +172,7 @@ class RaxmlWrapper:
             if lh > best_lh:
                 best_lh = lh
                 best_jobname = rep_jobname
+            self.cfg.log.debug("Tree %d GAMMA-based logLH: %f\n" % (i, lh))
         
         best_fname = self.result_fname(best_jobname)
         dst_fname = self.result_fname(job_name)

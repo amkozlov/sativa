@@ -114,10 +114,10 @@ class TaxTreeHelper:
                 else:
                     node.name = "Undefined"
                     if hasattr(node, "B"):
-                        self.cfg.log.debug("INFO: no taxonomic annotation for branch %s (reason: children belong to different kingdoms)", node.B)
-
+                        self.cfg.log.debug("INFO: empty taxonomic annotation for branch %s (child nodes have no common ranks)", node.B)
+                
                 node.add_feature("ranks", node_ranks)
-        
+
         self.tax_tree = self.bf_rooted_tree
 
     def build_bid_taxonomy_map(self):
@@ -294,8 +294,8 @@ class TaxClassifyHelper:
             if lowest_rank:
                 rw_own[lowest_rank] = rw_own.get(lowest_rank, 0) + lweight
                 rb[lowest_rank] = br_id
-            else:
-                self.cfg.log.debug("WARNING: no annotation for branch ", br_id)
+#            else:
+#                self.cfg.log.debug("WARNING: no annotation for branch %s", br_id)
             
         # if all branches have empty ranks only, just return this placement
         if len(rw_total) == 0:

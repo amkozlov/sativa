@@ -207,7 +207,7 @@ class RefTreeBuilder:
         self.reduced_refalign_fname = self.raxml_wrapper.reduce_alignment(self.refalign_fname)
         
         self.cfg.log.debug("\nConstrained ML inference: \n")
-        raxml_params = ["-s", self.reduced_refalign_fname, "-g", self.reftree_mfu_fname, "-F", "--no-seq-check"] 
+        raxml_params = ["-s", self.reduced_refalign_fname, "-g", self.reftree_mfu_fname, "--no-seq-check"] 
         if self.cfg.mfresolv_method  == "fast":
             raxml_params += ["-D"]
         elif self.cfg.mfresolv_method  == "ultrafast":
@@ -222,14 +222,19 @@ class RefTreeBuilder:
             # RAxML call to optimize model parameters and write them down to the binary model file
             self.cfg.log.debug("\nOptimizing model parameters: \n")
             raxml_params = ["-f", "e", "-s", self.reduced_refalign_fname, "-t", bfu_fname, "--no-seq-check"]
-            if self.cfg.raxml_model == "GTRCAT" and not self.cfg.compress_patterns:
+            if self.cfg.raxml_model.startswith("GTRCAT") and not self.cfg.compress_patterns:
                 raxml_params +=  ["-H"]
             self.invocation_raxml_optmod = self.raxml_wrapper.run(self.optmod_job_name, raxml_params)
             if self.raxml_wrapper.result_exists(self.optmod_job_name):
                 self.reftree_loglh = self.raxml_wrapper.get_tree_lh(self.optmod_job_name)
-                self.cfg.log.debug("\nLogLH of the reference tree: %f\n" % self.reftree_loglh)
                 self.raxml_wrapper.copy_result_tree(self.optmod_job_name, self.reftree_bfu_fname)
                 self.raxml_wrapper.copy_optmod_params(self.optmod_job_name, self.optmod_fname)
+
+                if self.cfg.raxml_model.startswith("GTRCAT"):
+                  mod_name = "CAT"
+                else:
+                  mod_name = "GAMMA" 
+                self.cfg.log.debug("\n%s-based logLH of the reference tree: %f\n" % (mod_name, self.reftree_loglh))
             else:
                 errmsg = "RAxML run failed (model optimization), please examine the log for details: %s" \
                         % self.raxml_wrapper.make_raxml_fname("output", self.optmod_job_name)
@@ -282,22 +287,6 @@ class RefTreeBuilder:
             self.reftree_tax.write(outfile=self.reftree_lbl_fname, format=5)
             self.reftree_tax.write(outfile=self.reftree_tax_fname, format=3)
 
-    def build_branch_rank_map(self):
-        self.bid_ranks_map = {}
-        for node in self.reftree_tax.traverse("postorder"):
-            if not node.is_root() and hasattr(node, "B"):                
-                parent = node.up                
-                self.bid_ranks_map[node.B] = parent.ranks
-#                print "%s => %s" % (node.B, parent.ranks)
-            elif self.cfg.verbose:
-                print "INFO: EPA branch label missing, mapping to taxon skipped (%s)" % node.name
-    
-    def write_branch_rank_map(self):
-        with open(self.brmap_fname, "w") as fbrmap:    
-            for node in self.reftree_tax.traverse("postorder"):
-                if not node.is_root() and hasattr(node, "B"):                
-                    fbrmap.write(node.B + "\t" + ";".join(self.bid_ranks_map[node.B]) + "\n")
-    
     def calc_node_heights(self):
         """Calculate node heights on the reference tree (used to define branch-length cutoff during classification step)
            Algorithm is as follows:
