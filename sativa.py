@@ -107,7 +107,8 @@ class LeaveOneTest:
         orig_rank_level = Taxonomy.lowest_assigned_rank_level(orig_ranks)
         new_rank_level = Taxonomy.lowest_assigned_rank_level(ranks)
         #if new_rank_level < 0 or (new_rank_level < num_common_ranks and orig_rank_level >= num_common_ranks):
-        if new_rank_level < 0:
+#        if new_rank_level < 0:
+        if len(ranks) == 0:
             mis_rec = {}
             mis_rec['name'] = seq_name
             mis_rec['orig_level'] = -1
@@ -117,7 +118,7 @@ class LeaveOneTest:
             mis_rec['orig_ranks'] = orig_ranks
             mis_rec['ranks'] = []
             mis_rec['lws'] = [1.0]
-            mis_rec['conf'] = lws[0]
+            mis_rec['conf'] = mis_rec['lws'][0]
         else:
             mislabel_lvl = -1
             min_len = min(len(orig_ranks),len(ranks))
@@ -520,8 +521,8 @@ def parse_args():
             help="""Do not call RAxML EPA, use existing .jplace file as input instead.""")
     parser.add_argument("-p", dest="rand_seed", type=int, default=None,
             help="""Random seed to be used with RAxML. Default: current system time.""")
-    parser.add_argument("-P", dest="brlen_pv", type=float, default=1e-4,
-            help="""P-value for branch length Erlang test. Default: 10^-4\n""")
+    parser.add_argument("-P", dest="brlen_pv", type=float, default=0.,
+            help="""P-value for branch length Erlang test. Default: 0=off\n""")
     parser.add_argument("-l", dest="min_lhw", type=float, default=0.,
             help="""A value between 0 and 1, the minimal sum of likelihood weight of
                     an assignment to a specific rank. This value represents a confidence 

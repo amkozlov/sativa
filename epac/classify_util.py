@@ -156,15 +156,16 @@ class TaxClassifyHelper:
     def classify_seq(self, edges, minlw = None):
         if not minlw:
             minlw = self.cfg.min_lhw
+
+        edges = self.erlang_filter(edges)
         if len(edges) > 0:
-            edges = self.erlang_filter(edges)
             if self.cfg.taxassign_method == "1":
                 ranks, lws = self.assign_taxonomy_maxsum(edges, minlw)
             else:
                 ranks, lws = self.assign_taxonomy_maxlh(edges)
             return ranks, lws
         else:
-            return None, None      
+            return [], []      
             
     def erlang_filter(self, edges):
         if self.cfg.brlen_pv == 0.:

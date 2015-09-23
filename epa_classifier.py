@@ -380,7 +380,7 @@ def parse_args():
             help="""Run name, will be used to name result files.""")
     parser.add_argument("-p", dest="rand_seed", type=int, default=None,
             help="""Random seed to be used with RAxML. Default: current system time.""")
-    parser.add_argument("-P", dest="p_value", type=float, default=0.0,
+    parser.add_argument("-P", dest="brlen_pv", type=float, default=0.0,
             help="""P-value for branch length Erlang test. Default: 0 (filter off)\n""")
     parser.add_argument("-minalign", dest="minalign", type=float, default=0.9,
             help="""Minimal percent of the sites aligned to the reference alignment.  Default: 0.9""")
@@ -450,11 +450,11 @@ def check_args(args):
     if args.min_lhw < 0 or args.min_lhw > 1.0:
          args.min_lhw = 0.0
     
-    if args.p_value < 0:
-        args.p_value = 0
+    if args.brlen_pv < 0:
+        args.brlen_pv = 0
     
-    if not (args.method == "1" or args.method == "2"):
-        args.method == "1"
+    if not (args.taxassign_method == "1" or args.taxassign_method == "2"):
+        args.taxassign_method == "1"
 
 
 def print_run_info(config, args):
@@ -467,8 +467,8 @@ def print_run_info(config, args):
     config.log.info(" Min percent of alignment sites..%s" % args.minalign)
     config.log.info(" Model of rate heterogeneity:....%s" % config.raxml_model)
     config.log.info(" Min likelihood weight:..........%f" % args.min_lhw)
-    config.log.info(" Assignment method:..............%s" % args.method)
-    config.log.info(" P-value for Erlang test:........%f" % args.p_value)
+    config.log.info(" Assignment method:..............%s" % args.taxassign_method)
+    config.log.info(" P-value for Erlang test:........%f" % args.brlen_pv)
     config.log.info(" Number of threads:..............%d" % config.num_threads)
 #    print("Result will be written to:")
 #    print(args.output_fname)
