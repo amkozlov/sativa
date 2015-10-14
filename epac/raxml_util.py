@@ -126,7 +126,7 @@ class RaxmlWrapper:
         else:        
             return jp
 
-    def run(self, job_name, params, silent=True):
+    def run(self, job_name, params, silent=True, chkpoint_fname=None):
         if self.cfg.raxml_model == "AUTO":
             print "ERROR: you should have called EpacConfig.resolve_auto_settings() in your script!\n"
             sys.exit()
@@ -141,6 +141,9 @@ class RaxmlWrapper:
         if not "-p" in lparams:
             seed = random.randint(1, 32000)
             lparams += ["-p", str(seed)]
+            
+        if chkpoint_fname:
+            lparams += ["-Z", chkpoint_fname]
 
         if self.cfg.run_on_cluster:
             self.run_cluster(lparams)
@@ -164,10 +167,39 @@ class RaxmlWrapper:
     def run_multiple(self, job_name, params, repnum, silent=True):    
         best_lh = float("-inf")
         best_jobname = None
+        check_old_jobs = self.cfg.restart
         
         for i in range(repnum):
+            call_raxml = True
+            chkpoint_fname = None
+
             rep_jobname = "%s.%d" % (job_name, i)
-            invoc_str = self.run(rep_jobname, params, silent)
+            
+            if check_old_jobs:
+                # in resume mode, we have to check where we have stopped before 
+                next_jobname = "%s.%d" % (job_name, i+1)
+                next_info = self.info_fname(next_jobname)
+                # if RAxML_info file for the next job exists, current job has had finished -> skip it
+                if os.path.isfile(next_info):
+                    call_raxml = False
+                else:
+                    # use RAxML checkpoints if there are any
+                    old_chkpoint_fname = self.checkpoint_fname(rep_jobname)
+                    if not os.path.isfile(old_chkpoint_fname):
+                        old_chkpoint_fname = self.bkup_checkpoint_fname(rep_jobname)
+                        if not os.path.isfile(old_chkpoint_fname):
+                            old_chkpoint_fname = None
+
+                    FileUtils.remove_if_exists(next_info)
+                    if old_chkpoint_fname:
+                        chkpoint_fname = self.checkpoint_fname("last_chkpoint")
+                        shutil.move(old_chkpoint_fname, chkpoint_fname)
+                    
+                    # this was the last RAxML run from previous SATIVA invocation -> proceed without checks from now on
+                    check_old_jobs = False
+                  
+            if call_raxml:
+                invoc_str = self.run(rep_jobname, params, silent, chkpoint_fname)
             lh = self.get_tree_lh(rep_jobname)
             if lh > best_lh:
                 best_lh = lh
@@ -235,6 +267,12 @@ class RaxmlWrapper:
     
     def info_fname(self, job_name):
         return self.make_raxml_fname("info", job_name)
+
+    def checkpoint_fname(self, job_name):
+        return self.make_raxml_fname("binaryCheckpoint", job_name)
+
+    def bkup_checkpoint_fname(self, job_name):
+        return self.make_raxml_fname("binaryCheckpointBackup", job_name)
 
     def result_exists(self, job_name):
         if os.path.isfile(self.result_fname(job_name)):

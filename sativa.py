@@ -513,6 +513,9 @@ def parse_args():
             help="""Number of RAxML tree searches (with distinct random seeds) to resolve multifurcation. Default: 1""")
     parser.add_argument("-v", dest="verbose", action="store_true",
             help="""Print additional info messages to the console.""")
+    parser.add_argument("-R", dest="restart", action="store_true",
+            help="""Resume execution after a premature termination (e.g., due to expired job time limit).
+Run name of the previous (terminated) job must be specified via -n option.""")
     parser.add_argument("-c", dest="config_fname", default=None,
             help="Config file name.")
     parser.add_argument("-r", dest="ref_fname",

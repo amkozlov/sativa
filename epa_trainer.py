@@ -473,6 +473,9 @@ information needed for taxonomic placement of query sequences.""")
             help="""Number of RAxML tree searches (with distinct random seeds). Default: 1""")
     parser.add_argument("-x", dest="taxcode_name", choices=["bac", "bot", "zoo", "vir"], type = str.lower,
             help="""Taxonomic code: BAC(teriological), BOT(anical), ZOO(logical), VIR(ological)""")
+    parser.add_argument("-R", dest="restart", action="store_true",
+            help="""Resume execution after a premature termination (e.g., due to expired job time limit).
+Run name of the previous (terminated) job must be specified via -n option.""")
     parser.add_argument("-v", dest="verbose", action="store_true",
             help="""Print additional info messages to the console.""")
     parser.add_argument("-debug", dest="debug", action="store_true",

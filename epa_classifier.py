@@ -392,6 +392,9 @@ def parse_args():
             help="""Specify the number of CPUs.  Default: %d""" % multiprocessing.cpu_count())
     parser.add_argument("-v", dest="verbose", action="store_true",
             help="""Print classification results and additional info messages to the console.""")
+    parser.add_argument("-R", dest="restart", action="store_true",
+            help="""Resume execution after a premature termination (e.g., due to expired job time limit).
+Run name of the previous (terminated) job must be specified via -n option.""")
     parser.add_argument("-debug", dest="debug", action="store_true",
             help="""Debug mode, intermediate files will not be cleaned up.""")
     parser.add_argument("-a", dest="align_only", action="store_true",

@@ -68,6 +68,7 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
     def __init__(self, args): 
         self.verbose = args.verbose
         self.debug = args.debug
+        self.restart = args.restart
         self.refjson_fname = args.ref_fname 
                
         self.rand_seed = args.rand_seed 
@@ -78,8 +79,6 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
         else:
             self.name = random.randint(1, 99999)
 
-        temp_name = self.name + "_" + timestamp
-
         self.basepath = os.path.dirname(os.path.abspath(__file__))
         self.epac_home = os.path.abspath(os.path.join(self.basepath, os.pardir)) + "/"
         self.output_dir = args.output_dir
@@ -88,7 +87,17 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
             self.temp_dir = args.temp_dir
         else:
             self.temp_dir = os.path.join(self.epac_home, "tmp")
-        self.temp_dir = os.path.join(self.temp_dir, temp_name)
+
+        if self.restart:
+            tmpdirs = glob.glob(os.path.join(self.temp_dir, self.name + "_*"))
+            if len(tmpdirs) > 0:
+                tmpdirs.sort(key=os.path.getmtime, reverse=True)
+                self.temp_dir = tmpdirs[0]
+            else:
+                self.exit_user_error("ERROR: Cannot resume execution: temp directory for the previous run not found in %s" % self.temp_dir)
+        else:
+            temp_name = self.name + "_" + timestamp
+            self.temp_dir = os.path.join(self.temp_dir, temp_name)
             
         self.raxml_outdir = self.temp_dir
         self.raxml_outdir_abs = os.path.abspath(self.raxml_outdir)
@@ -107,7 +116,9 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
         if args.num_threads:
             self.num_threads = args.num_threads        
         self.check_raxml()    
-        os.mkdir(self.temp_dir)
+        
+        if not self.restart:
+            os.mkdir(self.temp_dir)
 
     def set_defaults(self):
         self.muscle_home = self.epac_home + "/epac/bin" + "/"
@@ -145,8 +156,12 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
         ch.setFormatter(formatter)        
         self.log.addHandler(ch)
 
-        # add console handler
-        fh = logging.FileHandler(self.log_fname, mode='w')
+        # add file handler
+        if self.restart:
+            logf_mode = "a"
+        else:
+            logf_mode = "w"
+        fh = logging.FileHandler(self.log_fname, mode=logf_mode)
         fh.setLevel(log_lvl)
         fh.setFormatter(formatter)        
         self.log.addHandler(fh)
@@ -252,6 +267,8 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
 
     def print_version(self, progname):
         self.log.info(EpacConfig.SATIVA_INFO % progname)    
+        if self.restart:
+            self.log.info("Resuming %s execution using files from previous run found in: %s\n" % (progname, self.temp_dir))
     
 class EpacTrainerConfig(EpacConfig):
     
@@ -335,6 +352,9 @@ class SativaConfig(EpacTrainerConfig):
                 self.refjson_fname = self.out_fname("%NAME%.refjson")
             else:
                 self.refjson_fname = self.tmp_fname("%NAME%.refjson")
+                
+        if self.restart and os.path.isfile(self.refjson_fname):
+            self.load_refjson = True
         
     def set_defaults(self):
         EpacTrainerConfig.set_defaults(self)
