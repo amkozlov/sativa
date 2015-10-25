@@ -4,7 +4,6 @@ import sys
 import re
 from string import maketrans
 from ete2 import Tree
-#from epac.ete2 import Tree
 
 class TaxCode:
     UNI_TAX_RANKS = {
@@ -33,6 +32,9 @@ class TaxCode:
         }        
     UNI_TAX_LEVELS = len(UNI_TAX_RANKS)
     
+    # ranks of the standard 7-levels taxonomy
+    STD_RANKS = [1, 2, 4, 7, 12, 18, 19]
+    
     BAC_TAX_CODE = {
          1: ((), ("bacteria", "archaea")),   # kingdom
          2: ((), ()),                        # phylum
@@ -42,8 +44,6 @@ class TaxCode:
          8: (("ineae"), ()),                 # suborder
          12: (("aceae"), ()),                # family
          13: (("oideae"), ()),               # subfamily
-         15: (("eae"), ()),                  # tribe
-         16: (("inae"), ()),                 # subtribe
          18: ((), ()),                       # genus
          19: ((), ()),                       # species
          20: ((), ()),                       # subspecies
@@ -134,7 +134,7 @@ class TaxCode:
         sorted_tax_levels = sorted(self.tax_code.keys())
         
         real_level = 0
-        
+
         # first, try to guess rank level based on its name or name suffix
         for lvl in sorted_tax_levels:
           (suffix, exact_match) = self.tax_code[lvl]
@@ -148,12 +148,13 @@ class TaxCode:
                 real_level = 1
             else:
                 parent_level = self.guess_rank_level(ranks, rank_level-1)
+                if parent_level == 0:
+                    return 0
                 idx = sorted_tax_levels.index(parent_level)
                 for i in range(idx+1, len(sorted_tax_levels)):
                   lvl = sorted_tax_levels[i]
                   suffix = self.tax_code[lvl][0]
-                  # here we assume that if rank has a defined suffix, if would have been identified in the previous step
-                  if len(suffix) == 0 or i == len(sorted_tax_levels):
+                  if lvl in TaxCode.STD_RANKS:
                     real_level = lvl
                     break
                              
