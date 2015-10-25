@@ -56,15 +56,19 @@ class RaxmlWrapper:
 
     def reduce_alignment(self, align_fname, job_name="reduce"):
         reduced_fname = align_fname + ".reduced"
-        FileUtils.remove_if_exists(reduced_fname)
-        raxml_params = ["-f", "c", "-s", align_fname]
-        raxml_params += ["--no-dup-check"]
-        self.run(job_name, raxml_params)
-        self.cleanup(job_name)
-        if os.path.isfile(reduced_fname):
+        # we don't have to do anything in restart mode
+        if self.cfg.restart and os.path.isfile(reduced_fname):
             return reduced_fname
         else:
-            return align_fname
+            FileUtils.remove_if_exists(reduced_fname)
+            raxml_params = ["-f", "c", "-s", align_fname]
+            raxml_params += ["--no-dup-check"]
+            self.run(job_name, raxml_params)
+            self.cleanup(job_name)
+            if os.path.isfile(reduced_fname):
+                return reduced_fname
+            else:
+                return align_fname
 
     def run_epa(self, job_name, align_fname, reftree_fname, optmod_fname="", silent=True, mode="epa", subtree_fname=None,\
     lhw_acc_threshold=0.999):
@@ -206,6 +210,10 @@ class RaxmlWrapper:
                 best_jobname = rep_jobname
             self.cfg.log.debug("Tree %d GAMMA-based logLH: %f\n" % (i, lh))
         
+        best_fname = self.info_fname(best_jobname)
+        dst_fname = self.info_fname(job_name)
+        shutil.copy(best_fname, dst_fname)
+
         best_fname = self.result_fname(best_jobname)
         dst_fname = self.result_fname(job_name)
         shutil.copy(best_fname, dst_fname)
@@ -261,6 +269,19 @@ class RaxmlWrapper:
                 return lh
                 
         return None
+        
+    def get_invocation_str(self, job_name):
+        info_fname = self.info_fname(job_name)
+        with open(info_fname, "r") as info_file:
+            info_str = info_file.read()
+        
+        pattern = "RAxML was called as follows:\n\n"
+        
+        m = re.search('(?<=%s).*' % pattern, info_str)
+        if m:
+            return m.group(0)
+        else:
+            return ""
     
     def result_fname(self, job_name):
         return self.make_raxml_fname("result", job_name)

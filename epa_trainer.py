@@ -212,7 +212,11 @@ class RefTreeBuilder:
             raxml_params += ["-D"]
         elif self.cfg.mfresolv_method  == "ultrafast":
             raxml_params += ["-f", "e"]
-        self.invocation_raxml_multif = self.raxml_wrapper.run_multiple(self.mfresolv_job_name, raxml_params, self.cfg.rep_num)
+        if self.cfg.restart and self.raxml_wrapper.result_exists(self.mfresolv_job_name):
+            self.invocation_raxml_multif = self.raxml_wrapper.get_invocation_str(self.mfresolv_job_name)
+            self.cfg.log.debug("\nUsing existing ML tree found in: %s\n", self.raxml_wrapper.result_fname(self.mfresolv_job_name))
+        else:
+            self.invocation_raxml_multif = self.raxml_wrapper.run_multiple(self.mfresolv_job_name, raxml_params, self.cfg.rep_num)
         if self.raxml_wrapper.result_exists(self.mfresolv_job_name):        
 #            self.raxml_wrapper.copy_result_tree(self.mfresolv_job_name, self.reftree_bfu_fname)
 #            self.raxml_wrapper.copy_optmod_params(self.mfresolv_job_name, self.optmod_fname)
