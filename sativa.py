@@ -347,15 +347,26 @@ class LeaveOneTest:
         
     def run_leave_seq_out_test(self):
         job_name = self.cfg.subst_name("l1out_seq_%NAME%")
+        placements = []
         if self.cfg.jplace_fname:
-            jp = EpaJsonParser(self.cfg.jplace_fname)
+            if os.path.isdir(self.cfg.jplace_fname):
+                jplace_fmask = os.path.join(self.cfg.jplace_fname, '*.jplace')
+            else:
+                jplace_fmask = self.cfg.jplace_fname
+
+            jplace_fname_list = glob.glob(jplace_fmask)
+            for jplace_fname in jplace_fname_list:
+                jp = EpaJsonParser(jplace_fname)
+                placements += jp.get_placement()
+                
+            config.log.debug("Loaded %d placements from %s\n", len(placements), jplace_fmask)
         else:        
             jp = self.raxml.run_epa(job_name, self.refalign_fname, self.reftree_fname, self.optmod_fname, mode="l1o_seq")
+            placements = jp.get_placement()
             if self.cfg.output_interim_files:
                 out_jplace_fname = self.cfg.out_fname("%NAME%.l1out_seq.jplace")
                 self.raxml.copy_epa_jplace(job_name, out_jplace_fname, move=True, mode="l1o_seq")
-
-        placements = jp.get_placement()
+        
         seq_count = 0
         for place in placements:
             seq_name = place["n"][0]
@@ -377,26 +388,33 @@ class LeaveOneTest:
                         rank_conf = max(rank_conf, self.misrank_conf_map[tax_path])
                 mis_rec['rank_conf'] = rank_conf
             seq_count += 1
-
+            
         return seq_count    
         
     def run_final_epa_test(self):
         self.reftree_outgroup = self.refjson.get_outgroup()
+
         tmp_reftree = self.reftree.copy() 
+        name2refnode = {}
+        for leaf in tmp_reftree.iter_leaves():
+            name2refnode[leaf.name] = leaf        
+
         tmp_taxtree = self.tax_tree.copy() 
+        name2taxnode = {}
+        for leaf in tmp_taxtree.iter_leaves():
+            name2taxnode[leaf.name] = leaf        
+
         for mis_rec in self.mislabels:
             rname = mis_rec['name']
 #            rname = EpacConfig.REF_SEQ_PREFIX + name
 
-            leaf_nodes = tmp_reftree.get_leaves_by_name(rname)
-            if len(leaf_nodes) > 0:
-                leaf_nodes[0].delete()
+            if rname in name2refnode:
+                name2refnode[rname].delete()
             else:
                 print "Node not found in the reference tree: %s" % rname
 
-            leaf_nodes = tmp_taxtree.get_leaves_by_name(rname)
-            if len(leaf_nodes) > 0:
-                leaf_nodes[0].delete()
+            if rname in name2taxnode:
+                name2taxnode[rname].delete()
             else:
                 print "Node not found in the taxonomic tree: %s" % rname
 
@@ -521,7 +539,8 @@ Run name of the previous (terminated) job must be specified via -n option.""")
     parser.add_argument("-r", dest="ref_fname",
             help="""Specify the reference alignment and taxonomy in json format.""")
     parser.add_argument("-j", dest="jplace_fname", default=None,
-            help="""Do not call RAxML EPA, use existing .jplace file as input instead.""")
+            help="""Do not call RAxML EPA, use existing .jplace file as input instead. 
+            This could be also a directory with *.jplace files.""")
     parser.add_argument("-p", dest="rand_seed", type=int, default=None,
             help="""Random seed to be used with RAxML. Default: current system time.""")
     parser.add_argument("-P", dest="brlen_pv", type=float, default=0.,
@@ -582,7 +601,7 @@ def check_args(args, parser):
         print("Input reference json file does not exists: %s" % args.ref_fname)
         sys.exit()
     
-    if args.jplace_fname and not os.path.isfile(args.jplace_fname):
+    if args.jplace_fname and not (os.path.isfile(args.jplace_fname) or os.path.isdir(args.jplace_fname)):
         print("EPA placement file does not exists: %s" % args.jplace_fname)
         sys.exit()
 

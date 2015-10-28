@@ -13,6 +13,10 @@ class TaxTreeHelper:
         self.tax_tree = tax_tree
         self.bid_taxonomy_map = None
         self.ranks_set = set()
+        if tax_tree:
+            self.init_taxnode_map()
+        else:
+            self.name2taxnode = {}
     
     def set_mf_rooted_tree(self, rt):
         self.mf_rooted_tree = rt
@@ -37,7 +41,12 @@ class TaxTreeHelper:
         if not self.bid_taxonomy_map:
             self.build_bid_taxonomy_map()
         return self.bid_taxonomy_map
-    
+
+    def init_taxnode_map(self):
+        self.name2taxnode = {}
+        for leaf in self.tax_tree.iter_leaves():
+            self.name2taxnode[leaf.name] = leaf
+        
     def save_outgroup(self):
         rt = self.mf_rooted_tree
         
@@ -119,6 +128,7 @@ class TaxTreeHelper:
                 node.add_feature("ranks", node_ranks)
 
         self.tax_tree = self.bf_rooted_tree
+        self.init_taxnode_map()
 
     def build_bid_taxonomy_map(self):
         self.bid_taxonomy_map = {}
@@ -130,11 +140,11 @@ class TaxTreeHelper:
                 self.ranks_set.add(Taxonomy.get_rank_uid(parent.ranks))
 
     def get_seq_ranks_from_tree(self, seq_name):
-        nodes = self.get_tax_tree().get_leaves_by_name(seq_name)
-        if len(nodes) != 1:
-            errmsg = "FATAL ERROR: Sequence %s is not found in the taxonomic tree, or is present more than once!" % seq_name
+        if seq_name not in self.name2taxnode:
+            errmsg = "FATAL ERROR: Sequence %s is not found in the taxonomic tree!" % seq_name
             self.cfg.exit_fatal_error(errmsg)
-        seq_node = nodes[0]
+
+        seq_node = self.name2taxnode[seq_name]
         ranks = Taxonomy.split_rank_uid(seq_node.up.name)
         return ranks
 
