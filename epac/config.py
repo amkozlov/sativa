@@ -137,6 +137,7 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
         self.min_confidence = 0.2
         self.num_threads = multiprocessing.cpu_count()
         self.compress_patterns = False
+        self.taxa_ident_thres = 0.6
         
     def init_logger(self):
         self.log_fname = self.out_fname("%NAME%.log")

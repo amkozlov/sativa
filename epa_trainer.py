@@ -18,6 +18,188 @@ from epac.erlang import tree_param
 from epac.msa import hmmer
 from epac.classify_util import TaxTreeHelper
 
+class InputValidator:
+    def __init__(self, config, input_tax, input_seqs, verbose=True): 
+        self.cfg = config
+        self.taxonomy = input_tax
+        self.alignment = input_seqs
+        self.verbose = verbose
+
+    def validate(self):
+        # following two checks are obsolete and disabled by default
+        self.check_tax_disbalance()
+        self.check_tax_duplicates()
+        
+        self.check_seq_ids()
+        self.check_invalid_chars()
+        
+        self.check_identical_seqs()
+        self.check_identical_ranks()
+        
+        self.taxonomy.close_taxonomy_gaps()
+        
+        return self.corr_ranks, self.corr_seqid, self.merged_ranks
+
+    def check_seq_ids(self):
+        # check that seq IDs in taxonomy and alignment correspond
+        self.mis_ids = []
+        for sid in self.taxonomy.seq_ranks_map.iterkeys():
+            unprefixed_sid = EpacConfig.strip_ref_prefix(sid)
+            if not self.alignment.has_seq(unprefixed_sid):
+                self.mis_ids.append(unprefixed_sid)
+                
+        if len(self.mis_ids) > 0 and self.verbose:
+            errmsg = "ERROR: Following %d sequence(s) are missing in your alignment file:\n%s\n\n" % (len(self.mis_ids), "\n".join(self.mis_ids))
+            errmsg += "Please make sure sequence IDs in taxonomic annotation file and in alignment are identical!\n"
+            self.cfg.exit_user_error(errmsg)
+            
+        return self.mis_ids
+
+    def check_invalid_chars(self):
+        # check for invalid characters in rank names
+        self.corr_ranks = self.taxonomy.normalize_rank_names()
+        
+        # check for invalid characters in sequence IDs
+        self.corr_seqid = self.taxonomy.normalize_seq_ids()
+
+        if self.verbose:
+            for old_rank in sorted(self.corr_ranks.keys()):
+                self.cfg.log.debug("NOTE: Following rank name contains illegal symbols and was renamed: %s --> %s", old_rank, self.corr_ranks[old_rank])
+            if len(self.corr_ranks) > 0:
+                self.cfg.log.debug("")
+            for old_sid in sorted(self.corr_seqid.keys()):
+                self.cfg.log.debug("NOTE: Following sequence ID contains illegal symbols and was renamed: %s --> %s" , old_sid, self.corr_seqid[old_sid])
+            if len(self.corr_seqid) > 0:
+                self.cfg.log.debug("")
+            
+        return self.corr_ranks, self.corr_seqid
+        
+    def check_identical_seqs(self):
+        seq_hash_map = {}
+        for name, seq, comment, sid in self.alignment.iter_entries():
+            ref_seq_name = EpacConfig.REF_SEQ_PREFIX + name
+            if ref_seq_name in self.taxonomy.seq_ranks_map:
+                seq_hash = hash(seq)
+                if seq_hash in seq_hash_map:
+                    seq_hash_map[seq_hash] += [name]
+                else:
+                    seq_hash_map[seq_hash] = [name]
+
+        self.dupseq_count = 0
+        self.dupseq_sets = []
+        for seq_hash, seq_ids in seq_hash_map.iteritems():
+            check_ids = seq_ids[:]
+            while len(check_ids) > 1:
+                # compare actual sequence strings, to account for a possible hash collision
+                seq1 = self.alignment.get_seq(check_ids[0])
+                coll_ids = []
+                dup_ids = [check_ids[0]]
+                for i in range(1, len(check_ids)):
+                    seq2 = self.alignment.get_seq(check_ids[i])
+                    if seq1 == seq2:
+                        dup_ids += [check_ids[i]]
+                    else:
+                        # collision found, add put seq id on a list to be checked in the next iteration
+                        coll_ids += [check_ids[i]]
+ 
+                if len(dup_ids) > 1:
+                    self.dupseq_sets += [dup_ids]
+                    self.dupseq_count += len(dup_ids) - 1
+
+                check_ids = coll_ids
+                
+        if self.verbose:
+            for dup_ids in self.dupseq_sets:
+                self.cfg.log.debug("NOTE: Following sequences are identical: %s", ", ".join(dup_ids))
+            if self.dupseq_count > 0:
+                self.cfg.log.debug("\nNOTE: Found %d sequence duplicates", self.dupseq_count)
+                
+        return self.dupseq_count, self.dupseq_sets
+
+    def check_identical_ranks(self):
+        self.merged_ranks = {}
+        for dup_ids in self.dupseq_sets:
+            if len(dup_ids) > 1:
+                duprank_map = {}
+                for seq_name in dup_ids:
+                    rank_id = self.taxonomy.seq_rank_id(seq_name)
+                    duprank_map[rank_id] = duprank_map.get(rank_id, 0) + 1
+                if len(duprank_map) > 1 and self.cfg.debug:
+                    self.cfg.log.debug("Ranks sharing duplicates: %s\n", str(duprank_map))
+                dup_ranks = []
+                for rank_id, count in duprank_map.iteritems():
+                    if count > self.cfg.taxa_ident_thres * self.taxonomy.get_rank_seq_count(rank_id):
+                      dup_ranks += [rank_id]
+                if len(dup_ranks) > 1:
+                    prefix = "__TAXCLUSTER%d__" % (len(self.merged_ranks) + 1)
+                    merged_rank_id = self.taxonomy.merge_ranks(dup_ranks, prefix)
+                    self.merged_ranks[merged_rank_id] = dup_ranks
+
+        if self.verbose:
+            merged_count = 0
+            for merged_rank_id, dup_ranks in self.merged_ranks.iteritems():
+                dup_ranks_str = "\n".join([Taxonomy.rank_uid_to_lineage_str(rank_id) for rank_id in dup_ranks])
+                self.cfg.log.warning("\nWARNING: Following taxa share >%.0f%% indentical sequences und thus considered indistinguishable:\n%s", self.cfg.taxa_ident_thres * 100, dup_ranks_str)
+                merged_rank_str = Taxonomy.rank_uid_to_lineage_str(merged_rank_id)
+                self.cfg.log.warning("For the purpose of mislabels identification, they were merged into one taxon:\n%s\n", merged_rank_str)
+                merged_count += len(dup_ranks)
+            
+            if merged_count > 0:
+                self.cfg.log.warning("WARNING: %d indistinguishable taxa have been merged into %d clusters.\n", merged_count, len(self.merged_ranks))
+
+        return self.merged_ranks
+            
+    def check_tax_disbalance(self):
+        # make sure we don't taxonomy "irregularities" (more than 7 ranks or missing ranks in the middle)
+        action = self.cfg.wrong_rank_count
+        if action != "ignore":
+            autofix = action == "autofix"
+            errs = self.taxonomy.check_for_disbalance(autofix)
+            if len(errs) > 0:
+                if action == "autofix":
+                    print "WARNING: %d sequences with invalid annotation (missing/redundant ranks) found and were fixed as follows:\n" % len(errs)
+                    for err in errs:
+                        print "Original:   %s\t%s"   % (err[0], err[1])
+                        print "Fixed as:   %s\t%s\n" % (err[0], err[2])
+                elif action == "skip":
+                    print "WARNING: Following %d sequences with invalid annotation (missing/redundant ranks) were skipped:\n" % len(errs)
+                    for err in errs:
+                        self.taxonomy.remove_seq(err[0])
+                        print "%s\t%s" % err
+                else:  # abort
+                    print "ERROR: %d sequences with invalid annotation (missing/redundant ranks) found:\n" % len(errs)
+                    for err in errs:
+                        print "%s\t%s" % err
+                    print "\nPlease fix them manually (add/remove ranks) and run the pipeline again (or use -wrong-rank-count autofix option)"
+                    print "NOTE: Only standard 7-level taxonomies are supported at the moment. Although missing trailing ranks (e.g. species) are allowed,"
+                    print "missing intermediate ranks (e.g. family) or sublevels (e.g. suborder) are not!\n"
+                    self.cfg.exit_user_error()
+        
+    def check_tax_duplicates(self):
+        # check for duplicate rank names
+        action = self.cfg.dup_rank_names
+        if action != "ignore":
+            autofix = action == "autofix"
+            dups = self.taxonomy.check_for_duplicates(autofix)
+            if len(dups) > 0:
+                if action == "autofix":
+                    print "WARNING: %d sequences with duplicate rank names found and were renamed as follows:\n" % len(dups)
+                    for dup in dups:
+                        print "Original:    %s\t%s"   %  (dup[0], dup[1])
+                        print "Duplicate:   %s\t%s"   %  (dup[2], dup[3])
+                        print "Renamed to:  %s\t%s\n" %  (dup[2], dup[4])
+                elif action == "skip":
+                    print "WARNING: Following %d sequences with duplicate rank names were skipped:\n" % len(dups)
+                    for dup in dups:
+                        self.taxonomy.remove_seq(dup[2])
+                        print "%s\t%s\n" % (dup[2], dup[3])
+                else:  # abort
+                    print "ERROR: %d sequences with duplicate rank names found:\n" % len(dups)
+                    for dup in dups:
+                        print "%s\t%s\n%s\t%s\n" % dup
+                    print "Please fix (rename) them and run the pipeline again (or use -dup-rank-names autofix option)" 
+                    self.cfg.exit_user_error()
+
 class RefTreeBuilder:
     def __init__(self, config): 
         self.cfg = config
@@ -44,89 +226,14 @@ class RefTreeBuilder:
                 self.input_seqs = SeqGroup(sequences=in_file, format = fmt)
                 break
             except:
-                if self.cfg.debug:
-                    print("Guessing input format: not " + fmt)
+                self.cfg.log.debug("Guessing input format: not " + fmt)
         if self.input_seqs == None:
             self.cfg.exit_user_error("Invalid input file format: %s\nThe supported input formats are fasta and phylip" % in_file)
             
     def validate_taxonomy(self):
-        # make sure we don't taxonomy "irregularities" (more than 7 ranks or missing ranks in the middle)
-        action = self.cfg.wrong_rank_count
-        if action != "ignore":
-            autofix = action == "autofix"
-            errs = self.taxonomy.check_for_disbalance(autofix)
-            if len(errs) > 0:
-                if action == "autofix":
-                    print "WARNING: %d sequences with invalid annotation (missing/redundant ranks) found and were fixed as follows:\n" % len(errs)
-                    for err in errs:
-                        print "Original:   %s\t%s"   % (err[0], err[1])
-                        print "Fixed as:   %s\t%s\n" % (err[0], err[2])
-                elif action == "skip":
-                    print "WARNING: Following %d sequences with invalid annotation (missing/redundant ranks) were skipped:\n" % len(errs)
-                    for err in errs:
-                        self.taxonomy.remove_seq(err[0])
-                        print "%s\t%s" % err
-                else:  # abort
-                    print "ERROR: %d sequences with invalid annotation (missing/redundant ranks) found:\n" % len(errs)
-                    for err in errs:
-                        print "%s\t%s" % err
-                    print "\nPlease fix them manually (add/remove ranks) and run the pipeline again (or use -wrong-rank-count autofix option)"
-                    print "NOTE: Only standard 7-level taxonomies are supported at the moment. Although missing trailing ranks (e.g. species) are allowed,"
-                    print "missing intermediate ranks (e.g. family) or sublevels (e.g. suborder) are not!\n"
-                    self.cfg.exit_user_error()
-
-        # check for duplicate rank names
-        action = self.cfg.dup_rank_names
-        if action != "ignore":
-            autofix = action == "autofix"
-            dups = self.taxonomy.check_for_duplicates(autofix)
-            if len(dups) > 0:
-                if action == "autofix":
-                    print "WARNING: %d sequences with duplicate rank names found and were renamed as follows:\n" % len(dups)
-                    for dup in dups:
-                        print "Original:    %s\t%s"   %  (dup[0], dup[1])
-                        print "Duplicate:   %s\t%s"   %  (dup[2], dup[3])
-                        print "Renamed to:  %s\t%s\n" %  (dup[2], dup[4])
-                elif action == "skip":
-                    print "WARNING: Following %d sequences with duplicate rank names were skipped:\n" % len(dups)
-                    for dup in dups:
-                        self.taxonomy.remove_seq(dup[2])
-                        print "%s\t%s\n" % (dup[2], dup[3])
-                else:  # abort
-                    print "ERROR: %d sequences with duplicate rank names found:\n" % len(dups)
-                    for dup in dups:
-                        print "%s\t%s\n%s\t%s\n" % dup
-                    print "Please fix (rename) them and run the pipeline again (or use -dup-rank-names autofix option)" 
-                    self.cfg.exit_user_error()
+        self.input_validator = InputValidator(self.cfg, self.taxonomy, self.input_seqs)
+        self.input_validator.validate()
         
-        # check that seq IDs in taxonomy and alignment correspond
-        mis_ids = []
-        for sid in self.taxonomy.seq_ranks_map.iterkeys():
-            unprefixed_sid = EpacConfig.strip_ref_prefix(sid)
-            if not self.input_seqs.has_seq(unprefixed_sid):
-                mis_ids.append(unprefixed_sid)
-            
-        if len(mis_ids) > 0:
-            errmsg = "ERROR: Following %d sequence(s) are missing in your alignment file:\n%s\n\n" % (len(mis_ids), "\n".join(mis_ids))
-            errmsg += "Please make sure sequence IDs in taxonomic annotation file and in alignment are identical!\n"
-            self.cfg.exit_user_error(errmsg)
-        
-        # check for invalid characters in rank names
-        self.corr_ranks = self.taxonomy.normalize_rank_names()
-        for old_rank in sorted(self.corr_ranks.keys()):
-            self.cfg.log.debug("NOTE: Following rank name contains illegal symbols and was renamed: %s --> %s", old_rank, self.corr_ranks[old_rank])
-        
-        self.cfg.log.debug("")
-        
-        # check for invalid characters in sequence IDs
-        self.corr_seqid = self.taxonomy.normalize_seq_ids()
-        for old_sid in sorted(self.corr_seqid.keys()):
-            self.cfg.log.debug("NOTE: Following sequence ID contains illegal symbols and was renamed: %s --> %s" , old_sid, self.corr_seqid[old_sid])
-        
-        self.cfg.log.debug("")
-        
-        self.taxonomy.close_taxonomy_gaps()
-
     def build_multif_tree(self):
         c = self.cfg
         
@@ -160,8 +267,8 @@ class RefTreeBuilder:
         with open(self.refalign_fname, "w") as fout:
             for name, seq, comment, sid in self.input_seqs.iter_entries():
                 seq_name = EpacConfig.REF_SEQ_PREFIX + name
-                if seq_name in self.corr_seqid:
-                  seq_name = self.corr_seqid[seq_name]
+                if seq_name in self.input_validator.corr_seqid:
+                  seq_name = self.input_validator.corr_seqid[seq_name]
                 if seq_name in self.reftree_ids:
                     fout.write(">" + seq_name + "\n" + seq + "\n")
 
@@ -380,9 +487,10 @@ class RefTreeBuilder:
         jw.set_pattern_compression(self.cfg.compress_patterns)
         jw.set_taxcode(self.cfg.taxcode_name)
         
-        corr_ranks_reverse = dict((reversed(item) for item in self.corr_ranks.items()))
+        jw.set_merged_ranks_map(self.input_validator.merged_ranks)
+        corr_ranks_reverse = dict((reversed(item) for item in self.input_validator.corr_ranks.items()))
         jw.set_corr_ranks_map(corr_ranks_reverse)
-        corr_seqid_reverse = dict((reversed(item) for item in self.corr_seqid.items()))
+        corr_seqid_reverse = dict((reversed(item) for item in self.input_validator.corr_seqid.items()))
         jw.set_corr_seqid_map(corr_seqid_reverse)
 
         mdata = { "ref_tree_size": self.reftree_size, 
@@ -422,28 +530,29 @@ class RefTreeBuilder:
         self.taxonomy = Taxonomy(prefix=EpacConfig.REF_SEQ_PREFIX, tax_fname=self.cfg.taxonomy_fname)
         self.cfg.log.info("==> Loading reference alignment from file: %s ...\n" , self.cfg.align_fname)
         self.load_alignment()
-        self.cfg.log.info("===> Building a multifurcating tree from taxonomy with %d seqs ...\n" , self.taxonomy.seq_count())
+        self.cfg.log.info("===> Validating taxonomy and alignment ...\n")
         self.validate_taxonomy()
+        self.cfg.log.info("====> Building a multifurcating tree from taxonomy with %d seqs ...\n" , self.taxonomy.seq_count())
         self.build_multif_tree()
-        self.cfg.log.info("====> Building the reference alignment ...\n")
+        self.cfg.log.info("=====> Building the reference alignment ...\n")
         self.export_ref_alignment()
         self.export_ref_taxonomy()
-        self.cfg.log.info("=====> Saving the outgroup for later re-rooting ...\n")
+        self.cfg.log.info("======> Saving the outgroup for later re-rooting ...\n")
         self.save_rooting()
-        self.cfg.log.info("======> Resolving multifurcation: choosing the best topology from %d independent RAxML runs ...\n" % self.cfg.rep_num)
+        self.cfg.log.info("=======> Resolving multifurcation: choosing the best topology from %d independent RAxML runs ...\n" % self.cfg.rep_num)
         self.resolve_multif()
         self.load_reduced_refalign()
-        self.cfg.log.info("=======> Calling RAxML-EPA to obtain branch labels ...\n")
+        self.cfg.log.info("========> Calling RAxML-EPA to obtain branch labels ...\n")
         self.epa_branch_labeling()
-        self.cfg.log.info("========> Post-processing the EPA tree (re-rooting, taxonomic labeling etc.) ...\n")
+        self.cfg.log.info("=========> Post-processing the EPA tree (re-rooting, taxonomic labeling etc.) ...\n")
         self.epa_post_process()
         self.calc_node_heights()
         
-        self.cfg.log.debug("\n=========> Checking branch labels ...")
+        self.cfg.log.debug("\n==========> Checking branch labels ...")
         self.cfg.log.debug("shared rank names before training: %s", repr(self.taxonomy.get_common_ranks()))
         self.cfg.log.debug("shared rank names after  training: %s\n", repr(self.mono_index()))
         
-        self.cfg.log.info("=========> Saving the reference JSON file: %s\n" % self.cfg.refjson_fname)
+        self.cfg.log.info("==========> Saving the reference JSON file: %s\n" % self.cfg.refjson_fname)
         self.write_json()
 
 def parse_args():

@@ -93,6 +93,11 @@ class RefJsonChecker:
                     and self.check_field("corr_seqid_map", dict) \
                     and self.check_field("corr_ranks_map", dict)
 
+        # check v1.5 fields, if needed
+        if nver >= 1.5:
+            valid = valid \
+                    and self.check_field("merged_ranks_map", dict)
+
         return (valid, self.error)
 
 class RefJsonParser:
@@ -215,6 +220,13 @@ class RefJsonParser:
             self.corr_ranks = {}
         return self.corr_ranks
 
+    def get_merged_ranks_map(self):
+        if "merged_ranks_map" in self.jdata:
+            self.merged_ranks = self.jdata["merged_ranks_map"]
+        else:
+            self.merged_ranks = {}
+        return self.merged_ranks
+
     def get_metadata(self):
         return self.jdata["metadata"]
         
@@ -251,7 +263,7 @@ class RefJsonBuilder:
             self.jdata = old_json.jdata
         else:
             self.jdata = {}
-            self.jdata["version"] = "1.4"
+            self.jdata["version"] = "1.5"
 #            self.jdata["author"] = "Jiajie Zhang"
         
     def set_taxonomy(self, bid_ranks_map):
@@ -303,6 +315,9 @@ class RefJsonBuilder:
 
     def set_corr_ranks_map(self, ranks_map):
         self.jdata["corr_ranks_map"] = ranks_map
+
+    def set_merged_ranks_map(self, merged_ranks_map):
+        self.jdata["merged_ranks_map"] = merged_ranks_map
 
     def set_metadata(self, metadata):    
         self.jdata["metadata"] = metadata

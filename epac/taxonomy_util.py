@@ -204,13 +204,22 @@ class Taxonomy:
         else:
             return ranks
             
+    @staticmethod    
+    def rank_uid_to_lineage_str(rank_uid, min_lvls=0):
+        ranks = Taxonomy.split_rank_uid(rank_uid, min_lvls)
+        return Taxonomy.lineage_str(ranks)
+
     def __init__(self, prefix="", tax_fname="", tax_map=None):
         self.prefix = prefix
         
         tree_nodes = []
         self.common_ranks = set([])
+        self.rank_seqs_map = {}
         if tax_map:
             self.seq_ranks_map = tax_map
+            for sid, ranks in tax_map.iteritems():
+                rank_id = Taxonomy.get_rank_uid(ranks)
+                self.rank_seqs_map[rank_id] = self.rank_seqs_map.get(rank_id, []) + [sid]
         elif tax_fname:
             self.seq_ranks_map = {}
             self.load_taxonomy(tax_fname)
@@ -241,6 +250,8 @@ class Taxonomy:
         return self.seq_ranks_map
 
     def remove_seq(self, seqid):
+        rank_id = self.seq_rank_id(seqid)
+        self.rank_seqs_map[rank_id].remove(seq_id)
         del self.seq_ranks_map[seqid]
 
     def rename_seq(self, old_seqid, new_seqid):
@@ -248,29 +259,63 @@ class Taxonomy:
         del self.seq_ranks_map[old_seqid]
 
     def get_seq_ranks(self, seq_id):
+        if not seq_id.startswith(self.prefix):
+            seq_id = self.prefix + seq_id
         return self.seq_ranks_map[seq_id]
         
     def seq_lineage_str(self, seq_id):
-        ranks = list(self.seq_ranks_map[seq_id])
+        ranks = list(self.get_seq_ranks(seq_id))
         return Taxonomy.lineage_str(ranks)        
 
-    def load_taxonomy(self, tax_fname):
-        fin = open(tax_fname)
-        for line in fin:
-            line = line.strip()
-            toks = line.split("\t")
-            sid = self.prefix + toks[0]
-            ranks_str = toks[1]
-            ranks = ranks_str.split(";")
-            for i in range(len(ranks)):
-                rank_name = ranks[i].strip()
-#                if rank_name in GGTaxonomyFile.rank_placeholders:
-#                    rank_name = Taxonomy.EMPTY_RANK
-                ranks[i] = rank_name
-                
-            self.seq_ranks_map[sid] = ranks     
+    def seq_rank_id(self, seq_id):
+        ranks = list(self.get_seq_ranks(seq_id))
+        return Taxonomy.get_rank_uid(ranks)        
 
-        fin.close()
+    def get_rank_seqs(self, rank_id):
+        return self.rank_seqs_map.get(rank_id, [])
+
+    def get_rank_seq_count(self, rank_id):
+        return len(self.rank_seqs_map.get(rank_id, []))
+        
+    def merge_ranks(self, rank_ids, name_prefix="__TAXCLUSTER__"):
+        if len(rank_ids) < 2:
+            return None
+        
+        all_sid = []
+        for rank_id in rank_ids:
+            all_sid += self.get_rank_seqs(rank_id)
+            del self.rank_seqs_map[rank_id]
+        
+        first_taxon = Taxonomy.split_rank_uid(rank_ids[0])
+        merge_lvl = Taxonomy.lowest_assigned_rank_level(first_taxon)
+        new_name = name_prefix + first_taxon[merge_lvl]
+        new_rank = first_taxon[:merge_lvl] + [new_name]
+        new_rank_id = Taxonomy.get_rank_uid(new_rank)
+
+        self.rank_seqs_map[new_rank_id] = all_sid
+
+        for sid in all_sid:
+            self.seq_ranks_map[sid] = new_rank
+            
+        return new_rank_id
+
+    def load_taxonomy(self, tax_fname):
+        with open(tax_fname) as fin:
+            for line in fin:
+                line = line.strip()
+                toks = line.split("\t")
+                sid = self.prefix + toks[0]
+                ranks_str = toks[1]
+                ranks = ranks_str.split(";")
+                for i in range(len(ranks)):
+                    rank_name = ranks[i].strip()
+    #                if rank_name in GGTaxonomyFile.rank_placeholders:
+    #                    rank_name = Taxonomy.EMPTY_RANK
+                    ranks[i] = rank_name
+                rank_id = Taxonomy.get_rank_uid(ranks)
+                    
+                self.seq_ranks_map[sid] = ranks 
+                self.rank_seqs_map[rank_id] = self.rank_seqs_map.get(rank_id, []) + [sid]
 
     def normalize_rank_names(self):
         invalid_chars = "[](),;:'"
