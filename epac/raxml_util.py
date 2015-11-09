@@ -142,6 +142,9 @@ class RaxmlWrapper:
         lparams += ["-m", self.cfg.raxml_model, "-n", job_name]
         lparams += ["--no-bfgs"]
         
+        if self.cfg.verbose:
+            lparams += ["--verbose"]
+        
         if not "-p" in lparams:
             seed = random.randint(1, 32000)
             lparams += ["-p", str(seed)]

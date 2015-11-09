@@ -7,6 +7,7 @@ import datetime
 import time
 import logging
 import multiprocessing
+from string import maketrans
 
 from epac.ete2 import Tree, SeqGroup
 from epac.argparse import ArgumentParser,RawTextHelpFormatter
@@ -24,6 +25,9 @@ class InputValidator:
         self.taxonomy = input_tax
         self.alignment = input_seqs
         self.verbose = verbose
+        self.dupseq_sets = None
+        self.merged_ranks = None
+        self.gaps_trantab = maketrans("?N", "--")
 
     def validate(self):
         # following two checks are obsolete and disabled by default
@@ -40,6 +44,9 @@ class InputValidator:
         
         return self.corr_ranks, self.corr_seqid, self.merged_ranks
 
+    def normalize_gaps(self, seq):
+        return seq.translate(self.gaps_trantab)
+        
     def check_seq_ids(self):
         # check that seq IDs in taxonomy and alignment correspond
         self.mis_ids = []
@@ -79,7 +86,7 @@ class InputValidator:
         for name, seq, comment, sid in self.alignment.iter_entries():
             ref_seq_name = EpacConfig.REF_SEQ_PREFIX + name
             if ref_seq_name in self.taxonomy.seq_ranks_map:
-                seq_hash = hash(seq)
+                seq_hash = hash(self.normalize_gaps(seq))
                 if seq_hash in seq_hash_map:
                     seq_hash_map[seq_hash] += [name]
                 else:
@@ -91,11 +98,11 @@ class InputValidator:
             check_ids = seq_ids[:]
             while len(check_ids) > 1:
                 # compare actual sequence strings, to account for a possible hash collision
-                seq1 = self.alignment.get_seq(check_ids[0])
+                seq1 = self.normalize_gaps(self.alignment.get_seq(check_ids[0]))
                 coll_ids = []
                 dup_ids = [check_ids[0]]
                 for i in range(1, len(check_ids)):
-                    seq2 = self.alignment.get_seq(check_ids[i])
+                    seq2 = self.normalize_gaps(self.alignment.get_seq(check_ids[i]))
                     if seq1 == seq2:
                         dup_ids += [check_ids[i]]
                     else:
@@ -117,6 +124,8 @@ class InputValidator:
         return self.dupseq_count, self.dupseq_sets
 
     def check_identical_ranks(self):
+        if not self.dupseq_sets:
+            self.check_identical_seqs()
         self.merged_ranks = {}
         for dup_ids in self.dupseq_sets:
             if len(dup_ids) > 1:
@@ -395,8 +404,12 @@ class RefTreeBuilder:
         self.bid_ranks_map = self.taxtree_helper.get_bid_taxonomy_map()
         
         if self.cfg.debug:
-            self.reftree_tax.write(outfile=self.reftree_lbl_fname, format=5)
             self.reftree_tax.write(outfile=self.reftree_tax_fname, format=3)
+            with open(self.reftree_lbl_fname, "w") as outf:
+                outf.write(self.reftree_lbl_str)
+            with open(self.brmap_fname, "w") as outf:
+                for bid, ranks in self.bid_ranks_map.iteritems():
+                    outf.write("%s\t%s\n" % (bid, ";".join(ranks)))
 
     def calc_node_heights(self):
         """Calculate node heights on the reference tree (used to define branch-length cutoff during classification step)
@@ -634,6 +647,9 @@ def check_args(args):
 
     if not args.ref_fname:
         args.ref_fname = "%s.refjson" % args.output_name
+    
+    if args.output_dir and not os.path.dirname(args.ref_fname):
+        args.ref_fname = os.path.join(args.output_dir, args.ref_fname)
 
     #check if reference json file already exists
     if os.path.isfile(args.ref_fname):

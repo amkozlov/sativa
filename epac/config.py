@@ -62,10 +62,15 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
     def strip_query_prefix(seq_name):
         return EpacConfig.strip_prefix(seq_name, EpacConfig.QUERY_SEQ_PREFIX)
 
-    def __init__(self):
+    def __init__(self, args=None): 
+        self.basepath = os.path.dirname(os.path.abspath(__file__))
+        self.epac_home = os.path.abspath(os.path.join(self.basepath, os.pardir)) + "/"
+
         self.set_defaults()
+
+        if not args:
+            return
         
-    def __init__(self, args): 
         self.verbose = args.verbose
         self.debug = args.debug
         self.restart = args.restart
@@ -77,10 +82,8 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
         if args.output_name:
             self.name = args.output_name
         else:
-            self.name = random.randint(1, 99999)
+            self.name = str(random.randint(1, 99999))
 
-        self.basepath = os.path.dirname(os.path.abspath(__file__))
-        self.epac_home = os.path.abspath(os.path.join(self.basepath, os.pardir)) + "/"
         self.output_dir = args.output_dir
 
         if args.temp_dir:
@@ -101,8 +104,6 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
             
         self.raxml_outdir = self.temp_dir
         self.raxml_outdir_abs = os.path.abspath(self.raxml_outdir)
-
-        self.set_defaults()
 
         self.init_logger()
         
@@ -138,7 +139,11 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
         self.num_threads = multiprocessing.cpu_count()
         self.compress_patterns = False
         self.taxa_ident_thres = 0.6
-        
+        self.debug = False
+        self.restart = False
+        self.verbose = False
+        self.log = logging.getLogger('epac')
+       
     def init_logger(self):
         self.log_fname = self.out_fname("%NAME%.log")
         if self.verbose or self.debug:
@@ -146,8 +151,7 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
         else:
            log_lvl = logging.INFO
 
-        # create logger object
-        self.log = logging.getLogger('epac')
+        # configure logger object
         self.log.setLevel(logging.DEBUG)
         formatter = logging.Formatter('%(message)s')
 
@@ -319,12 +323,17 @@ class EpacTrainerConfig(EpacConfig):
         
 class EpacClassifierConfig(EpacConfig):
 
-    def __init__(self, args):
+    def __init__(self, args=None):
         EpacConfig.__init__(self, args)
 
-        self.taxassign_method = args.taxassign_method
-        self.min_lhw = args.min_lhw
-        self.brlen_pv = args.brlen_pv
+        if args:
+            self.taxassign_method = args.taxassign_method
+            self.min_lhw = args.min_lhw
+            self.brlen_pv = args.brlen_pv
+        else:
+            self.taxassign_method = "1"
+            self.min_lhw = 0.
+            self.brlen_pv = 0.
 
 class SativaConfig(EpacTrainerConfig):
     

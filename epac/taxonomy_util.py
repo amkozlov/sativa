@@ -7,108 +7,114 @@ from ete2 import Tree
 
 class TaxCode:
     UNI_TAX_RANKS = {
-         1: ("Kingdom", "k__"),
-         2: ("Phylum", "p__"),
-         3: ("Subphylum", "a__"),
-         4: ("Class", "c__"),
-         5: ("Subclass", "d__"),
-         6: ("Superorder", "e__"),
-         7: ("Order", "o__"),
-         8: ("Suborder", "h__"),
-         9: ("Infraorder", "i__"),
-         10: ("Superfamily", "j__"),
-         11: ("Epifamily", "l__"),
-         12: ("Family", "f__"), 
-         13: ("Subfamily", "m__"),
-         14: ("Infrafamily", "n__"),
-         15: ("Tribe", "t__"),
-         16: ("Subtribe", "u__"),
-         17: ("Infratribe", "v__"), 
-         18: ("Genus", "g__"),
-         19: ("Species", "s__"),
-         20: ("Subspecies", "b__"),
-         21: ("Strain", "r__"),
-         22: ("Isolate", "q__")
+         1: ("Domain", "d__"),
+         2: ("Kingdom", "k__"),
+         3: ("Subkingdom", "a__"),
+         4: ("Phylum", "p__"),
+         5: ("Subphylum", "a__"),
+         6: ("Class", "c__"),
+         7: ("Subclass", "x__"),
+         8: ("Superorder", "e__"),
+         9: ("Order", "o__"),
+         10: ("Suborder", "h__"),
+         11: ("Infraorder", "i__"),
+         12: ("Superfamily", "j__"),
+         13: ("Epifamily", "l__"),
+         14: ("Family", "f__"), 
+         15: ("Subfamily", "m__"),
+         16: ("Infrafamily", "n__"),
+         17: ("Tribe", "t__"),
+         18: ("Subtribe", "u__"),
+         19: ("Infratribe", "v__"), 
+         20: ("Genus", "g__"),
+         21: ("Species", "s__"),
+         22: ("Subspecies", "b__"),
+         23: ("Strain", "r__"),
+         24: ("Isolate", "q__")
         }        
     UNI_TAX_LEVELS = len(UNI_TAX_RANKS)
     
     # ranks of the standard 7-levels taxonomy
-    STD_RANKS = [1, 2, 4, 7, 12, 18, 19]
+    # kingdom, phylum, class, order, family, genus, species
+    STD_RANKS = [2, 4, 6, 9, 14, 20, 21]
     
     BAC_TAX_CODE = {
-         1: ((), ("bacteria", "archaea")),   # kingdom
-         2: ((), ()),                        # phylum
-         4: ((), ()),                        # class
-         5: (("idae"), ()),                  # subclass
-         7: (("ales"), ()),                  # order
-         8: (("ineae"), ()),                 # suborder
-         12: (("aceae"), ()),                # family
-         13: (("oideae"), ()),               # subfamily
-         18: ((), ()),                       # genus
-         19: ((), ()),                       # species
-         20: ((), ()),                       # subspecies
-         21: ((), ()),                       # strain
-         22: ((), ())                        # isolate
+         2: ((), ("bacteria", "archaea")),   # kingdom
+         4: ((), ()),                        # phylum
+         6: ((), ()),                        # class
+         7: (("idae"), ()),                  # subclass
+         9: (("ales"), ()),                  # order
+         10: (("ineae"), ()),                 # suborder
+         14: (("aceae"), ()),                # family
+         15: (("oideae"), ()),               # subfamily
+         20: ((), ()),                       # genus
+         21: ((), ()),                       # species
+         22: ((), ()),                       # subspecies
+         23: ((), ()),                       # strain
+         24: ((), ())                        # isolate
     }
 
     BOT_TAX_CODE = {
-         1: ((), ("plantae", "algae", "fungi")),                # kingdom
-         2: (("phyta", "phycota", "mycota"), ()),               # phylum
-         3: (("phytina", "phycotina", "mycotina"), ()),         # subphylum
-         4: (("opsida", "phyceae", "mycetes"), ()),             # class
-         5: (("idae", "phycidae", "mycetidae"), ()),            # subclass
-         6: (("anae"), ()),                                     # superorder
-         7: (("ales"), ()),                                     # order
-         8: (("ineae"), ()),                                    # suborder
-         9: (("aria"), ()),                                     # infraorder
-         10: (("acea"), ()),                                    # superfamily
-         12: (("aceae"), ()),                                   # family
-         13: (("oideae"), ()),                                  # subfamily
-         15: (("eae"), ()),                                     # tribe
-         16: (("inae"), ()),                                    # subtribe
-         18: ((), ()),                                          # genus
-         19: ((), ()),                                          # species
-         20: ((), ()),                                          # subspecies
-         21: ((), ()),                                          # specimen
-         22: ((), ())                                           # isolate
+         1: ((), ("eukaryota")),                                # domain
+         2: ((), ("plantae", "algae", "fungi")),                # kingdom
+         3: ((), ("dikarya")),                                  # subkingdom
+         4: (("phyta", "phycota", "mycota"), ()),               # phylum
+         5: (("phytina", "phycotina", "mycotina"), ()),         # subphylum
+         6: (("opsida", "phyceae", "mycetes"), ()),             # class
+         7: (("idae", "phycidae", "mycetidae"), ()),            # subclass
+         8: (("anae"), ()),                                     # superorder
+         9: (("ales"), ()),                                     # order
+         10: (("ineae"), ()),                                   # suborder
+         11: (("aria"), ()),                                    # infraorder
+         12: (("acea"), ()),                                    # superfamily
+         14: (("aceae"), ()),                                   # family
+         15: (("oideae"), ()),                                  # subfamily
+         17: (("eae"), ()),                                     # tribe
+         18: (("inae"), ()),                                    # subtribe
+         20: ((), ()),                                          # genus
+         21: ((), ()),                                          # species
+         22: ((), ()),                                          # subspecies
+         23: ((), ()),                                          # specimen
+         24: ((), ())                                           # isolate
     }
 
     ZOO_TAX_CODE = {
-         1: ((), ("animalia")),                                               # kingdom
-         2: ((), ("chordata", "arthropoda", "mollusca", "nematoda")),         # phylum
-         3: ((), ("vertebrata", "myriapoda", "crustacea", "hexapoda")),       # subphylum
-         4: ((), ("mammalia", "aves", "reptilia", "amphibia", "insecta")),    # class
-         5: ((), ()),                                                         # subclass
-         6: ((), ()),                                                         # superorder
-         7: ((), ()),                                                         # order
-         8: ((), ()),                                                         # suborder
-         9: ((), ()),                                                         # infraorder
-         10: (("oidea"), ()),                                                 # superfamily
-         11: (("oidae"), ()),                                                 # epifamily
-         12: (("idae"), ()),                                                  # family
-         13: (("inae"), ()),                                                  # subfamily
-         13: (("odd"), ()),                                                   # infrafamily
-         15: (("ini"), ()),                                                   # tribe
-         16: (("ina"), ()),                                                   # subtribe
-         17: (("ad", "iti"), ()),                                             # infratribe
-         18: ((), ()),                                                        # genus
-         19: ((), ()),                                                        # species
-         20: ((), ()),                                                        # subspecies
-         21: ((), ()),                                                        # specimen
-         22: ((), ())                                                         # isolate
+         1: ((), ("eukaryota")),                                              # domain
+         2: ((), ("animalia")),                                               # kingdom
+         4: ((), ("chordata", "arthropoda", "mollusca", "nematoda")),         # phylum
+         5: ((), ("vertebrata", "myriapoda", "crustacea", "hexapoda")),       # subphylum
+         6: ((), ("mammalia", "aves", "reptilia", "amphibia", "insecta")),    # class
+         7: ((), ()),                                                         # subclass
+         8: ((), ()),                                                         # superorder
+         9: ((), ()),                                                         # order
+         10: ((), ()),                                                         # suborder
+         11: ((), ()),                                                         # infraorder
+         12: (("oidea"), ()),                                                 # superfamily
+         13: (("oidae"), ()),                                                 # epifamily
+         14: (("idae"), ()),                                                  # family
+         15: (("inae"), ()),                                                  # subfamily
+         16: (("odd"), ()),                                                   # infrafamily
+         17: (("ini"), ()),                                                   # tribe
+         18: (("ina"), ()),                                                   # subtribe
+         19: (("ad", "iti"), ()),                                             # infratribe
+         20: ((), ()),                                                        # genus
+         21: ((), ()),                                                        # species
+         22: ((), ()),                                                        # subspecies
+         23: ((), ()),                                                        # specimen
+         24: ((), ())                                                         # isolate
     }
     
     VIR_TAX_CODE = {
-         1: ((), ("viruses")),      # kingdom
-         4: ((), ()),               # class
-         5: (("idae"), ()),         # subclass
-         7: (("virales"), ()),      # order
-         12: (("viridae"), ()),     # family
-         13: (("virinae"), ()),     # subfamily
-         18: (("virus"), ()),       # genus
-         19: ((" virus"), ()),      # species
-         21: ((), ()),              # strain
-         22: ((), ())               # isolate
+         2: ((), ("viruses")),      # kingdom
+         6: ((), ()),               # class
+         7: (("idae"), ()),         # subclass
+         9: (("virales"), ()),      # order
+         14: (("viridae"), ()),     # family
+         15: (("virinae"), ()),     # subfamily
+         20: (("virus"), ()),       # genus
+         21: ((" virus"), ()),      # species
+         23: ((), ()),              # strain
+         24: ((), ())               # isolate
     }
     
     TAX_CODE_MAP = {
@@ -141,11 +147,11 @@ class TaxCode:
           if rank_name.endswith(suffix) or rank_name in exact_match:
             real_level = lvl
             break
-        
+            
         # if name-based identification failed, try to derive rank level from its parent
         if real_level == 0:
             if rank_level == 0:    # kingdom
-                real_level = 1
+                real_level = 2
             else:
                 parent_level = self.guess_rank_level(ranks, rank_level-1)
                 if parent_level == 0:
@@ -214,14 +220,14 @@ class Taxonomy:
         
         tree_nodes = []
         self.common_ranks = set([])
+        self.seq_ranks_map = {}
         self.rank_seqs_map = {}
         if tax_map:
-            self.seq_ranks_map = tax_map
             for sid, ranks in tax_map.iteritems():
+                self.seq_ranks_map[sid] = ranks
                 rank_id = Taxonomy.get_rank_uid(ranks)
                 self.rank_seqs_map[rank_id] = self.rank_seqs_map.get(rank_id, []) + [sid]
         elif tax_fname:
-            self.seq_ranks_map = {}
             self.load_taxonomy(tax_fname)
 
     def get_common_ranks(self):
@@ -323,7 +329,7 @@ class Taxonomy:
         trantab = maketrans(invalid_chars, sub_chars)
         corr_ranks = {}
         for sid, ranks in self.seq_ranks_map.iteritems():
-            for i in range(1, len(ranks)):
+            for i in range(len(ranks)):
                 if ranks[i] in corr_ranks:
                     ranks[i] = corr_ranks[ranks[i]]
                 else:

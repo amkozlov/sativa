@@ -57,7 +57,7 @@ class RefJsonChecker:
                 self.error = "Field not found: %s" % fname
                 return False
     
-    def validate(self, ver = "1.1"):
+    def validate(self, ver = "1.5"):
         nver = float(ver)
         
         self.error = None
@@ -102,7 +102,7 @@ class RefJsonChecker:
 
 class RefJsonParser:
     """This class parses the EPA Classifier reference json file"""
-    def __init__(self, jsonfin, ver = "1.1"):
+    def __init__(self, jsonfin, ver = "1.5"):
         self.jdata = json.load(open(jsonfin))
         self.version = ver
         self.corr_seqid = None

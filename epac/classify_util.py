@@ -31,6 +31,9 @@ class TaxTreeHelper:
     def get_outgroup(self):
         return self.outgroup
 
+    def set_outgroup(self, outgr):
+        self.outgroup = outgr
+
     def get_tax_tree(self):
         if not self.tax_tree:
             self.label_bf_tree_with_ranks()
