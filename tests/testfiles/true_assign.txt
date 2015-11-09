@@ -1,0 +1,6 @@
+r_UpbRectu	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
+r_UxjAloci	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
+r_UyvMorti	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
+r_UyvNecro	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
+r_VejInsue	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Ilyobacter;-
+r_VxsModes	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;-;-
