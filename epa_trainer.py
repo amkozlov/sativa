@@ -27,6 +27,8 @@ class InputValidator:
         self.verbose = verbose
         self.dupseq_sets = None
         self.merged_ranks = None
+        self.corr_seqid = {}
+        self.corr_ranks = {}
         self.gaps_trantab = maketrans("?N", "--")
 
     def validate(self):
@@ -85,6 +87,7 @@ class InputValidator:
         seq_hash_map = {}
         for name, seq, comment, sid in self.alignment.iter_entries():
             ref_seq_name = EpacConfig.REF_SEQ_PREFIX + name
+            ref_seq_name = self.corr_seqid.get(ref_seq_name, ref_seq_name)
             if ref_seq_name in self.taxonomy.seq_ranks_map:
                 seq_hash = hash(self.normalize_gaps(seq))
                 if seq_hash in seq_hash_map:

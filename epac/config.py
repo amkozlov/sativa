@@ -277,25 +277,34 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
     
 class EpacTrainerConfig(EpacConfig):
     
-    def __init__(self, args):
+    def __init__(self, args=None):
         EpacConfig.__init__(self, args)
-        self.taxonomy_fname = args.taxonomy_fname
-        self.align_fname = args.align_fname
-        self.no_hmmer = args.no_hmmer
-        self.dup_rank_names  = args.dup_rank_names
-        self.wrong_rank_count  = args.wrong_rank_count
-        self.mfresolv_method = args.mfresolv_method
-        self.taxcode_name = args.taxcode_name
-        self.rep_num = args.rep_num
+        if args:
+            self.taxonomy_fname = args.taxonomy_fname
+            self.align_fname = args.align_fname
+            self.no_hmmer = args.no_hmmer
+            self.dup_rank_names  = args.dup_rank_names
+            self.wrong_rank_count  = args.wrong_rank_count
+            self.mfresolv_method = args.mfresolv_method
+            self.taxcode_name = args.taxcode_name
+            self.rep_num = args.rep_num
         
     def set_defaults(self):
         EpacConfig.set_defaults(self)
+        self.no_hmmer = False
+        self.dup_rank_names = "ignore"
+        self.wrong_rank_count = "ignore"
+        self.taxassign_method = "1"
+        self.mfresolv_method = "thorough"
+        self.taxcode_name = "bac"
+        self.rep_num = 1
         # default settings below imply no taxonomy filtering, 
         # i.e. all sequences from taxonomy file will be included into reference tree
         self.reftree_min_rank = 0
         self.reftree_max_seqs_per_leaf = 1e6
         self.reftree_clades_to_include=[]
         self.reftree_clades_to_ignore=[]
+        
 
     def read_from_file(self, config_fname):
         parser = EpacConfig.read_from_file(self, config_fname)

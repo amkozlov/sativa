@@ -222,6 +222,8 @@ class Taxonomy:
         self.common_ranks = set([])
         self.seq_ranks_map = {}
         self.rank_seqs_map = {}
+        self.corr_seq_ids = {}
+        self.uncorr_rank_ids = {}
         if tax_map:
             for sid, ranks in tax_map.iteritems():
                 self.seq_ranks_map[sid] = ranks
@@ -261,12 +263,16 @@ class Taxonomy:
         del self.seq_ranks_map[seqid]
 
     def rename_seq(self, old_seqid, new_seqid):
+        rank_id = self.seq_rank_id(old_seqid)
+        self.rank_seqs_map[rank_id].remove(old_seqid)
+        self.rank_seqs_map[rank_id].append(new_seqid)
         self.seq_ranks_map[new_seqid] = self.seq_ranks_map[old_seqid]
         del self.seq_ranks_map[old_seqid]
-
+        
     def get_seq_ranks(self, seq_id):
         if not seq_id.startswith(self.prefix):
             seq_id = self.prefix + seq_id
+        seq_id = self.corr_seq_ids.get(seq_id, seq_id)
         return self.seq_ranks_map[seq_id]
         
     def seq_lineage_str(self, seq_id):
@@ -282,6 +288,9 @@ class Taxonomy:
 
     def get_rank_seq_count(self, rank_id):
         return len(self.rank_seqs_map.get(rank_id, []))
+        
+    def get_uncorr_rank_id(self, rank_id):
+        return self.uncorr_rank_ids.get(rank_id, rank_id)
         
     def merge_ranks(self, rank_ids, name_prefix="__TAXCLUSTER__"):
         if len(rank_ids) < 2:
@@ -329,6 +338,7 @@ class Taxonomy:
         trantab = maketrans(invalid_chars, sub_chars)
         corr_ranks = {}
         for sid, ranks in self.seq_ranks_map.iteritems():
+            old_rank_id = Taxonomy.get_rank_uid(ranks)
             for i in range(len(ranks)):
                 if ranks[i] in corr_ranks:
                     ranks[i] = corr_ranks[ranks[i]]
@@ -337,6 +347,12 @@ class Taxonomy:
                     if new_rank_name != ranks[i]:
                         corr_ranks[ranks[i]] = new_rank_name
                         ranks[i] = new_rank_name
+
+            new_rank_id = Taxonomy.get_rank_uid(ranks)
+            if new_rank_id != old_rank_id and old_rank_id in self.rank_seqs_map:
+                self.rank_seqs_map[new_rank_id] = self.rank_seqs_map[old_rank_id]
+                del self.rank_seqs_map[old_rank_id]
+                self.uncorr_rank_ids[new_rank_id] = old_rank_id
                 
         return corr_ranks
         
@@ -344,14 +360,14 @@ class Taxonomy:
         invalid_chars = "[](),;:' "
         sub_chars = "_" * len(invalid_chars)
         trantab = maketrans(invalid_chars, sub_chars)
-        corr_ids = {}
+        self.corr_seq_ids = {}
         for old_sid in self.seq_ranks_map.iterkeys():
             new_sid = old_sid.translate(trantab);
             if new_sid != old_sid:
-                corr_ids[old_sid] = new_sid
                 self.rename_seq(old_sid, new_sid)
+                self.corr_seq_ids[old_sid] = new_sid
                 
-        return corr_ids
+        return self.corr_seq_ids
 
     def close_taxonomy_gaps(self):
         for sid, ranks in self.seq_ranks_map.iteritems():
