@@ -394,12 +394,12 @@ class LeaveOneTest:
     def run_final_epa_test(self):
         self.reftree_outgroup = self.refjson.get_outgroup()
 
-        tmp_reftree = self.reftree.copy() 
+        tmp_reftree = self.reftree.copy(method="newick") 
         name2refnode = {}
         for leaf in tmp_reftree.iter_leaves():
             name2refnode[leaf.name] = leaf        
 
-        tmp_taxtree = self.tax_tree.copy() 
+        tmp_taxtree = self.tax_tree.copy(method="newick") 
         name2taxnode = {}
         for leaf in tmp_taxtree.iter_leaves():
             name2taxnode[leaf.name] = leaf        
