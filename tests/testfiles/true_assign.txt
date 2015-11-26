@@ -1,6 +1,6 @@
-r_UpbRectu	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-r_UxjAloci	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-r_UyvMorti	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-r_UyvNecro	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-r_VejInsue	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Ilyobacter;-
-r_VxsModes	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;-;-
+r_UxjAloci	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium	1.000;1.000;1.000;1.000;1.000;1.000
+r_VxsModes	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Ilyobacter	1.000;1.000;1.000;1.000;1.000;0.690
+r_UyvNecro	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium	1.000;1.000;1.000;1.000;1.000;0.513
+r_VejInsue	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae	1.000;1.000;1.000;1.000;1.000
+r_UyvMorti	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium	1.000;1.000;1.000;1.000;1.000;0.773
+r_UpbRectu	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium	1.000;1.000;1.000;1.000;1.000;0.523

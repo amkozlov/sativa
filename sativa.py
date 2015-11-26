@@ -42,13 +42,29 @@ class LeaveOneTest:
         self.rank_mislabels = []
         self.rank_mislabels_cnt = []
         self.misrank_conf_map = {}
+        
+    def write_bid_tax_map(self, bid_tax_map, final):
+        if self.cfg.debug:
+            fname_suffix = "final" if final else "l1out"
+            bid_fname = self.cfg.tmp_fname("%NAME%_" + "bid_tax_map_%s.txt" % fname_suffix)
+            with open(bid_fname, "w") as outf:
+              for bid, bid_rec in bid_tax_map.iteritems():
+                outf.write("%s\t%s\t%d\t%f\n" % (bid, bid_rec[0], bid_rec[1], bid_rec[2]));    
+
+    def write_assignments(self, assign_map, final):
+        if self.cfg.debug:
+            fname_suffix = "final" if final else "l1out"
+            assign_fname = self.cfg.tmp_fname("%NAME%_" + "taxassign_%s.txt" % fname_suffix)
+            with open(assign_fname, "w") as outf:
+                for seq_name in assign_map.iterkeys():
+                    ranks, lws = assign_map[seq_name]
+                    outf.write("%s\t%s\t%s\n" % (seq_name, ";".join(ranks), ";".join(["%.3f" % l for l in lws])))
 
     def load_refjson(self, refjson_fname):
         try:
-            self.refjson = RefJsonParser(refjson_fname, ver="1.3")
+            self.refjson = RefJsonParser(refjson_fname)
         except ValueError:
-            print("ERROR: Invalid json file format!")
-            self.cfg.exit_user_error()
+            self.cfg.exit_user_error("ERROR: Invalid json file format!")
             
         #validate input json format 
         (valid, err) = self.refjson.validate()
@@ -59,9 +75,18 @@ class LeaveOneTest:
         self.rate = self.refjson.get_rate()
         self.node_height = self.refjson.get_node_height()
         self.origin_taxonomy = self.refjson.get_origin_taxonomy()
-        self.bid_taxonomy_map = self.refjson.get_bid_tanomomy_map()
         self.tax_tree = self.refjson.get_tax_tree()
         self.cfg.compress_patterns = self.refjson.get_pattern_compression()
+
+        self.bid_taxonomy_map = self.refjson.get_branch_tax_map()
+        if not self.bid_taxonomy_map:
+            # old file format (before 1.6), need to rebuild this map from scratch
+            th = TaxTreeHelper(self.cfg, self.origin_taxonomy)
+            th.set_mf_rooted_tree(self.tax_tree)
+            th.set_bf_unrooted_tree(self.refjson.get_reftree())
+            self.bid_taxonomy_map = th.get_bid_taxonomy_map()
+            
+        self.write_bid_tax_map(self.bid_taxonomy_map, final=False)
 
         reftree_str = self.refjson.get_raxml_readable_tree()
         self.reftree = Tree(reftree_str)
@@ -368,6 +393,7 @@ class LeaveOneTest:
                 self.raxml.copy_epa_jplace(job_name, out_jplace_fname, move=True, mode="l1o_seq")
         
         seq_count = 0
+        l1out_ass = {}
         for place in placements:
             seq_name = place["n"][0]
             
@@ -377,6 +403,8 @@ class LeaveOneTest:
 
             # get EPA tax label
             ranks, lws = self.classify_seq(place)
+            l1out_ass[seq_name] = (ranks, lws)
+            
             # check if they match
             mis_rec = self.check_seq_tax_labels(seq_name, orig_ranks, ranks, lws)
             # cross-check with higher rank mislabels
@@ -388,6 +416,8 @@ class LeaveOneTest:
                         rank_conf = max(rank_conf, self.misrank_conf_map[tax_path])
                 mis_rec['rank_conf'] = rank_conf
             seq_count += 1
+
+        self.write_assignments(l1out_ass, final=False)
             
         return seq_count    
         
@@ -437,11 +467,14 @@ class LeaveOneTest:
         th.set_bf_unrooted_tree(reftree_tax)
         bid_tax_map = th.get_bid_taxonomy_map()
         
+        self.write_bid_tax_map(bid_tax_map, final=True)
+
         cl = TaxClassifyHelper(self.cfg, bid_tax_map, self.rate, self.node_height)
         
 #        newtax_fname = self.cfg.subst_name("newtax_%NAME%.tre")
 #        th.get_tax_tree().write(outfile=newtax_fname, format=3)
 
+        final_ass = {}
         for place in placements:
             seq_name = place["n"][0]
 
@@ -460,12 +493,14 @@ class LeaveOneTest:
 
             # get EPA tax label
             ranks, lws = cl.classify_seq(place["p"])
+            final_ass[seq_name] = (ranks, lws)
 
             #print seq_name, ": ", orig_ranks, "--->", ranks
 
             # check if they match
             mis_rec = self.check_seq_tax_labels(seq_name, orig_ranks, ranks, lws)
-            
+
+        self.write_assignments(final_ass, final=True)
 
     def run_epa_once(self, reftree):
         reftree_fname = self.cfg.tmp_fname("final_ref_%NAME%.tre")

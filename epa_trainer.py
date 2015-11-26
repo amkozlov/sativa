@@ -411,8 +411,8 @@ class RefTreeBuilder:
             with open(self.reftree_lbl_fname, "w") as outf:
                 outf.write(self.reftree_lbl_str)
             with open(self.brmap_fname, "w") as outf:
-                for bid, ranks in self.bid_ranks_map.iteritems():
-                    outf.write("%s\t%s\n" % (bid, ";".join(ranks)))
+                for bid, br_rec in self.bid_ranks_map.iteritems():
+                    outf.write("%s\t%s\t%d\t%f\n" % (bid, br_rec[0], br_rec[1], br_rec[2]))
 
     def calc_node_heights(self):
         """Calculate node heights on the reference tree (used to define branch-length cutoff during classification step)
@@ -488,14 +488,10 @@ class RefTreeBuilder:
 
         json_builder.set_hmm_profile(fprofile)
         
-        if not self.cfg.debug:
-            FileUtils.remove_if_exists(refalign_fasta)
-            FileUtils.remove_if_exists(fprofile)
-
     def write_json(self):
         jw = RefJsonBuilder()
 
-        jw.set_taxonomy(self.bid_ranks_map)
+        jw.set_branch_tax_map(self.bid_ranks_map)
         jw.set_tree(self.reftree_lbl_str)
         jw.set_outgroup(self.reftree_outgroup)
         jw.set_ratehet_model(self.cfg.raxml_model)

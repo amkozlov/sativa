@@ -39,9 +39,9 @@ class TaxTreeHelper:
             self.label_bf_tree_with_ranks()
         return self.tax_tree
     
-    def get_bid_taxonomy_map(self):
+    def get_bid_taxonomy_map(self, rebuild=False):
         self.get_tax_tree()
-        if not self.bid_taxonomy_map:
+        if not self.bid_taxonomy_map or rebuild:
             self.build_bid_taxonomy_map()
         return self.bid_taxonomy_map
 
@@ -135,12 +135,17 @@ class TaxTreeHelper:
 
     def build_bid_taxonomy_map(self):
         self.bid_taxonomy_map = {}
+        self.ranks_set = set([])
         for node in self.tax_tree.traverse("postorder"):
-            if not node.is_root() and hasattr(node, "B"):                
-                parent = node.up                
-                self.bid_taxonomy_map[node.B] = parent.ranks
-#                bid_taxonomy_map[node.B] = node.ranks
-                self.ranks_set.add(Taxonomy.get_rank_uid(parent.ranks))
+            if not node.is_root() and hasattr(node, "B"):
+                parent = node.up
+                branch_rdiff = Taxonomy.lowest_assigned_rank_level(node.ranks) - Taxonomy.lowest_assigned_rank_level(parent.ranks)
+                branch_rank_id = Taxonomy.get_rank_uid(node.ranks)
+                branch_len = node.dist
+                self.bid_taxonomy_map[node.B] = (branch_rank_id, branch_rdiff, branch_len)
+                self.ranks_set.add(branch_rank_id)
+#                if self.cfg.debug:
+#                  print node.ranks, parent.ranks, branch_diff
 
     def get_seq_ranks_from_tree(self, seq_name):
         if seq_name not in self.name2taxnode:
@@ -165,6 +170,8 @@ class TaxClassifyHelper:
         self.sp_rate = sp_rate
         self.node_height = node_height
         self.erlang = erlang()
+        # hardcoded for now
+        self.parent_lhw_coeff = 0.49
 
     def classify_seq(self, edges, minlw = None):
         if not minlw:
@@ -224,14 +231,20 @@ class TaxClassifyHelper:
                 
         return []
      
+    def get_branch_ranks(self, br_id):
+        br_rec = self.bid_taxonomy_map[br_id]
+        br_rank_id = br_rec[0]
+        ranks = Taxonomy.split_rank_uid(br_rank_id)            
+        return ranks
+    
     def assign_taxonomy_maxlh(self, edges):
         #Calculate the sum of likelihood weight for each rank
         taxonmy_sumlw_map = {}
         for edge in edges:
             edge_nr = str(edge[0])
             lw = edge[2]
-            taxonomy = self.bid_taxonomy_map[edge_nr]
-            for rank in taxonomy:
+            taxranks = self.get_branch_ranks(edge_nr)            
+            for rank in taxranks:
                 if rank == "-":
                     taxonmy_sumlw_map[rank] = -1
                 elif rank in taxonmy_sumlw_map:
@@ -244,7 +257,7 @@ class TaxClassifyHelper:
         ml_edge = edges[0]
         edge_nr = str(ml_edge[0])
         maxlw = ml_edge[2]
-        ml_ranks = self.bid_taxonomy_map[edge_nr]
+        ml_ranks = self.get_branch_ranks(edge_nr)
         ml_ranks_copy = []
         for rk in ml_ranks:
             ml_ranks_copy.append(rk)
@@ -258,7 +271,7 @@ class TaxClassifyHelper:
             if rank == "-" and cnt > 0 :                
                 for edge in edges[1:]:
                     edge_nr = str(edge[0])
-                    taxonomy = self.bid_taxonomy_map[edge_nr]
+                    taxonomy = self.get_branch_ranks(edge_nr)
                     newrank = taxonomy[cnt]
                     newlw = taxonmy_sumlw_map[newrank]
                     higherrank_old = ml_ranks[cnt -1]
@@ -280,7 +293,6 @@ class TaxClassifyHelper:
         # "total" rank  = own rank + own rank of all children (for G1: G1 or G1 S1 or G1 S2)
         rw_own = {}
         rw_total = {}
-        rb = {}
         
         ranks = [Taxonomy.EMPTY_RANK]
         
@@ -288,26 +300,34 @@ class TaxClassifyHelper:
             br_id = str(edge[0])
             lweight = edge[2]
             lowest_rank = None
+            lowest_rank_lvl = None
 
             if lweight == 0.:
                 continue
-            
+
             # accumulate weight for the current sequence                
-            ranks = self.bid_taxonomy_map[br_id]
+            br_rank_id, rdiff, brlen = self.bid_taxonomy_map[br_id]
+            ranks = Taxonomy.split_rank_uid(br_rank_id)
             for i in range(len(ranks)):
                 rank = ranks[i]
                 rank_id = Taxonomy.get_rank_uid(ranks, i)
                 if rank != Taxonomy.EMPTY_RANK:
                     rw_total[rank_id] = rw_total.get(rank_id, 0) + lweight
+                    lowest_rank_lvl = i
                     lowest_rank = rank_id
-                    if not rank_id in rb:
-                        rb[rank_id] = br_id
                 else:
                     break
 
             if lowest_rank:
-                rw_own[lowest_rank] = rw_own.get(lowest_rank, 0) + lweight
-                rb[lowest_rank] = br_id
+                if rdiff > 0:
+                  # if ranks of 'upper' and 'lower' adjacent nodes of a branch are non-equal, split LHW among them
+                  parent_rank = Taxonomy.get_rank_uid(ranks, lowest_rank_lvl - rdiff)
+                  rw_own[lowest_rank] = rw_own.get(lowest_rank, 0) + lweight * (1 - self.parent_lhw_coeff)
+                  rw_own[parent_rank] = rw_own.get(parent_rank, 0) + lweight * self.parent_lhw_coeff
+                  # correct total rank for the lowest level
+                  rw_total[lowest_rank] = rw_total.get(lowest_rank, 0) - lweight * self.parent_lhw_coeff
+                else:
+                  rw_own[lowest_rank] = rw_own.get(lowest_rank, 0) + lweight
 #            else:
 #                self.cfg.log.debug("WARNING: no annotation for branch %s", br_id)
             
@@ -318,17 +338,16 @@ class TaxClassifyHelper:
         # we assign the sequence to a rank, which has the max "own" weight AND 
         # whose "total" weight is greater than a confidence threshold
         max_rw = 0.
-        s_r = None
+        ass_rank_id = None
         for r in rw_own.iterkeys():
             if rw_own[r] > max_rw and rw_total[r] >= minlw:
-                s_r = r
+                ass_rank_id = r
                 max_rw = rw_own[r] 
-        if not s_r:
-            s_r = max(rw_total.iterkeys(), key=(lambda key: rw_total[key]))
+        if not ass_rank_id:
+            ass_rank_id = max(rw_total.iterkeys(), key=(lambda key: rw_total[key]))
 
-        a_br_id = rb[s_r]
-        a_ranks = self.bid_taxonomy_map[a_br_id]
-
+        a_ranks = Taxonomy.split_rank_uid(ass_rank_id)
+        
         # "total" weight is considered as confidence value for now
         a_conf = [0.] * len(a_ranks)
         for i in range(len(a_conf)):

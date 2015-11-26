@@ -1,73 +1,73 @@
-30	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-0	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;-;-
-37	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-22	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-45	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;-;-
-36	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-60	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;-;-
-61	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;-;-
-62	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;-;-
-63	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;-;-
-64	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;-;-;-
-65	Bacteria;Firmicutes;Clostridia;Clostridiales;-;-;-
-66	Bacteria;Firmicutes;Clostridia;Clostridiales;-;-;-
-67	Bacteria;-;-;-;-;-;-
-68	Bacteria;-;-;-;-;-;-
-69	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;-;-;-
-32	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-24	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-25	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-23	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-27	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-20	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-21	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-48	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-49	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-46	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;-;-
-47	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-44	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-42	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-28	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-29	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-40	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-41	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-1	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Propionigenium;-
-35	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-3	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;-;-
-2	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Propionigenium;-
-5	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Ilyobacter;-
-4	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Ilyobacter;-
-7	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Ilyobacter;-
-6	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Ilyobacter;-
-9	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;-;-
-8	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;-;-
-43	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-33	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-39	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-26	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-34	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-38	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-72	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Cetobacterium;-
-71	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Cetobacterium;-
-70	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;-;-
-15	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-14	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-11	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-10	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;-;-
-13	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-12	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-59	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;-;-
-58	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-17	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-16	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-55	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-54	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-57	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-56	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-51	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-50	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-53	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-52	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Leptotrichiaceae;Leptotrichia;-
-19	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-18	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
-31	Bacteria;Fusobacteria;Fusobacteriia;Fusobacteriales;Fusobacteriaceae;Fusobacterium;-
+56	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.027237
+42	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.010901
+22	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales	3	0.000001
+43	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.004291
+60	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Propionigenium@@Propionigenium modestum	1	0.015930
+61	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Propionigenium@@Propionigenium maris	1	0.039446
+62	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Propionigenium	1	0.000001
+63	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Ilyobacter@@Ilyobacter insuetus	1	0.023023
+64	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Ilyobacter@@Ilyobacter polytropus	1	0.020163
+49	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.033371
+66	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Ilyobacter	0	0.006866
+67	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Ilyobacter	1	0.000001
+68	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae	0	0.036916
+69	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae	0	0.052731
+52	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.020274
+53	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium ulcerans	1	0.005833
+24	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium necrogenes	1	0.012243
+25	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.003667
+26	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium russii	1	0.040572
+27	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium gonidiaformans	1	0.008566
+20	Bacteria@@Firmicutes@@Clostridia@@Clostridiales@@Peptostreptococcaceae@@Filifactor@@Filifactor alocis	3	0.107214
+21	Bacteria@@Firmicutes@@Clostridia@@Clostridiales	3	0.000001
+48	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.008973
+23	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium mortiferum	1	0.013962
+46	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.003507
+47	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.011439
+44	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium simiae	1	0.009162
+45	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.006585
+28	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium necrophorum subsp. necrophorum	1	0.003060
+29	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium necrophorum subsp. funduliforme	1	0.000944
+40	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium nucleatum subsp. fusiforme	1	0.002297
+41	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium nucleatum subsp. vincentii	1	0.009126
+1	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Leptotrichia@@Leptotrichia buccalis	1	0.010297
+0	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Leptotrichia@@Leptotrichia goodfellowii	1	0.045014
+3	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Leptotrichia@@Leptotrichia shahii	1	0.015644
+2	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Leptotrichia@@Leptotrichia hofstadii	1	0.017256
+5	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Leptotrichia@@Leptotrichia trevisanii	1	0.023612
+4	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Leptotrichia@@Leptotrichia hongkongensis	1	0.020050
+7	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Leptotrichia@@Leptotrichia wadei	1	0.035455
+6	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Leptotrichia	0	0.013527
+9	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Leptotrichia	0	0.035017
+8	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Leptotrichia	0	0.018602
+18	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae	1	0.338534
+10	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Leptotrichia	0	0.019549
+13	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Sebaldella@@Sebaldella termitidis	2	0.132697
+65	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Ilyobacter@@Ilyobacter tartaricus	1	0.005605
+12	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Leptotrichia	1	0.060429
+72	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Cetobacterium@@Cetobacterium ceti	1	0.046572
+71	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Cetobacterium@@Cetobacterium somerae	1	0.035830
+70	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae	0	0.051707
+15	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Sneathia@@Sneathia sanguinegens	2	0.107731
+14	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae	0	0.018528
+11	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Leptotrichia	0	0.142089
+51	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.006311
+39	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium nucleatum subsp. animalis	1	0.010056
+38	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium nucleatum subsp. nucleatum	1	0.004496
+59	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Psychrilyobacter@@Psychrilyobacter atlanticus	2	0.099099
+58	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae	1	0.000001
+17	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae	0	0.059529
+55	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.023096
+19	Bacteria@@Firmicutes@@Clostridia@@Clostridiales@@Clostridiaceae@@Clostridium@@Clostridium rectum	3	0.002978
+32	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.012856
+31	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium equinum	1	0.009053
+30	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.014153
+37	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium canifelinum	1	0.002941
+36	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium nucleatum subsp. polymorphum	1	0.002717
+35	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium periodonticum	1	0.000001
+34	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.013740
+33	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	0	0.036598
+16	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Leptotrichiaceae@@Streptobacillus@@Streptobacillus moniliformis	2	0.056979
+54	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium varium	1	0.006058
+57	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium	1	0.000001
+50	Bacteria@@Fusobacteria@@Fusobacteriia@@Fusobacteriales@@Fusobacteriaceae@@Fusobacterium@@Fusobacterium perfoetens	1	0.082861

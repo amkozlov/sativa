@@ -14,7 +14,7 @@ try:
     from epac.json_util import RefJsonParser, RefJsonChecker, EpaJsonParser
     from epac.msa import muscle, hmmer
     from epac.taxonomy_util import Taxonomy
-    from epac.classify_util import TaxClassifyHelper
+    from epac.classify_util import TaxClassifyHelper,TaxTreeHelper
 except ImportError, e:
     print("Some packages are missing, please re-downloand EPA-classifier")
     print e
@@ -45,11 +45,18 @@ class EpaClassifier:
             self.cfg.exit_user_error("Invalid json file format: %s" % config.refjson_fname)
         #validate input json format 
         self.refjson.validate()
-        self.bid_taxonomy_map = self.refjson.get_bid_tanomomy_map()
         self.reftree = self.refjson.get_reftree()
         self.rate = self.refjson.get_rate()
         self.node_height = self.refjson.get_node_height()
         self.cfg.compress_patterns = self.refjson.get_pattern_compression()
+
+        self.bid_taxonomy_map = self.refjson.get_branch_tax_map()
+        if not self.bid_taxonomy_map:
+            # old file format (before 1.6), need to rebuild this map from scratch
+            th = TaxTreeHelper(self.cfg, self.origin_taxonomy)
+            th.set_mf_rooted_tree(self.tax_tree)
+            th.set_bf_unrooted_tree(self.refjson.get_reftree())
+            self.bid_taxonomy_map = th.get_bid_taxonomy_map()        
         
         self.cfg.log.info("Loaded reference tree with %d taxa\n" % len(self.reftree.get_leaves()))
 
@@ -311,7 +318,7 @@ class EpaClassifier:
                     if lw >=0 and lw < self.cfg.min_lhw:
                         return True
         
-        if lowrank >= 5 and not ranks[lowrank] == "-":
+        if lowrank >= 5 and lowrank < len(ranks) and not ranks[lowrank] == "-":
             return False
         else:
             placenode = self.reftree.search_nodes(B = place_edge)[0]

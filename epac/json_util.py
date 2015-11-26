@@ -57,7 +57,7 @@ class RefJsonChecker:
                 self.error = "Field not found: %s" % fname
                 return False
     
-    def validate(self, ver = "1.5"):
+    def validate(self, ver = "1.6"):
         nver = float(ver)
         
         self.error = None
@@ -66,7 +66,6 @@ class RefJsonChecker:
                 and self.check_field("raxmltree", unicode) \
                 and self.check_field("rate", float) \
                 and self.check_field("node_height", dict) \
-                and self.check_field("taxonomy", dict) \
                 and self.check_field("origin_taxonomy", dict) \
                 and self.check_field("sequences", list) \
                 and self.check_field("binary_model", unicode) \
@@ -98,13 +97,22 @@ class RefJsonChecker:
             valid = valid \
                     and self.check_field("merged_ranks_map", dict)
 
+        # "taxonomy" field has been renamed and its format was changed in v1.6
+        if nver >= 1.6:
+            valid = valid \
+                    and self.check_field("branch_tax_map", dict)
+        else:
+            valid = valid \
+                    and self.check_field("taxonomy", dict)
+
         return (valid, self.error)
 
 class RefJsonParser:
     """This class parses the EPA Classifier reference json file"""
-    def __init__(self, jsonfin, ver = "1.5"):
+    def __init__(self, jsonfin):
         self.jdata = json.load(open(jsonfin))
-        self.version = ver
+        self.version = self.jdata["version"]
+        self.nversion = float(self.version)
         self.corr_seqid = None
         self.corr_ranks = None
         self.corr_seqid_reverse = None
@@ -113,6 +121,9 @@ class RefJsonParser:
         jc = RefJsonChecker(jdata = self.jdata)
         return jc.validate(self.version)
     
+    def get_version(self):
+        return self.version
+
     def get_rate(self):
         return self.jdata["rate"]
     
@@ -144,8 +155,17 @@ class RefJsonParser:
         t = Tree(self.jdata["outgroup"], format=9)
         return t
 
-    def get_bid_tanomomy_map(self):
-        return self.jdata["taxonomy"]
+    def get_branch_tax_map(self):
+        if self.nversion >= 1.6:
+            return self.jdata["branch_tax_map"]
+        else:
+            return None
+
+    def get_taxonomy(self):
+        if self.nversion < 1.6:
+            return self.jdata["taxonomy"]
+        else:
+            return None
 
     def get_origin_taxonomy(self):
         return self.jdata["origin_taxonomy"]
@@ -263,11 +283,11 @@ class RefJsonBuilder:
             self.jdata = old_json.jdata
         else:
             self.jdata = {}
-            self.jdata["version"] = "1.5"
+            self.jdata["version"] = "1.6"
 #            self.jdata["author"] = "Jiajie Zhang"
         
-    def set_taxonomy(self, bid_ranks_map):
-        self.jdata["taxonomy"] = bid_ranks_map
+    def set_branch_tax_map(self, bid_ranks_map):
+        self.jdata["branch_tax_map"] = bid_ranks_map
 
     def set_origin_taxonomy(self, orig_tax_map):
         self.jdata["origin_taxonomy"] = orig_tax_map

@@ -17,10 +17,6 @@ class JsonTests(unittest.TestCase):
     def setUp(self):
         self.cfg = EpacConfig()
         self.testfile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "testfiles")
-        tax_fname = os.path.join(self.testfile_dir, "test.tax")
-        phy_fname = os.path.join(self.testfile_dir, "test.phy")
-        tax = Taxonomy(EpacConfig.REF_SEQ_PREFIX, tax_fname)
-        seqs = SeqGroup(sequences=phy_fname, format = "phylip")
     
     def test_jplace_read(self):
         jplace_fname = os.path.join(self.testfile_dir, "test.jplace")
@@ -41,12 +37,22 @@ class JsonTests(unittest.TestCase):
                 self.assertTrue(lhw >= 0.0 and lhw <= 1.0) 
         
     def test_refjson_read(self):
-        versions = ["1.4", "1.5"]
+        versions = ["1.4", "1.5", "1.6"]
         for ver in versions:
             ref_fname = os.path.join(self.testfile_dir, "test.refjson.v%s" % ver)
-            parser = RefJsonParser(ref_fname, ver)
+            parser = RefJsonParser(ref_fname)
             valid, errors = parser.validate()
             self.assertTrue(valid) 
+            self.assertEquals(parser.get_version(), ver) 
+            
+        jplace_fname = os.path.join(self.testfile_dir, "test.jplace")
+        parser = RefJsonParser(jplace_fname) 
+        valid, errors = parser.validate()
+        self.assertFalse(valid) 
+        
+        tax_fname = os.path.join(self.testfile_dir, "test.tax")
+        with self.assertRaises(ValueError):
+            parser = RefJsonParser(tax_fname)            
         
         
 if __name__ == '__main__':

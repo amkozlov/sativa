@@ -16,7 +16,7 @@ class TaxTreeHelperTests(unittest.TestCase):
 
     def setUp(self):
         self.testfile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "testfiles")
-        self.tax_fname = os.path.join(self.testfile_dir, "test.tax")
+        self.tax_fname = os.path.join(self.testfile_dir, "test_clean.tax")
         self.taxonomy = Taxonomy(EpacConfig.REF_SEQ_PREFIX, self.tax_fname)   
         tax_map = self.taxonomy.get_map()    
         cfg = EpacConfig()
@@ -43,29 +43,33 @@ class TaxTreeHelperTests(unittest.TestCase):
         self.expected_map = {}
         with open(map_fname) as inf:
             for line in inf:
-                bid, ranks_str = line.strip().split("\t")
-                self.expected_map[bid] = ranks_str.split(";")
+                bid, rank_id, rdiff, brlen = line.strip().split("\t")
+                self.expected_map[bid] = (rank_id, int(rdiff), float(brlen))
                 
         self.taxtree_helper.set_outgroup(self.expected_outgr)
         self.taxtree_helper.set_bf_unrooted_tree(bfu_tree)
         bid_tax_map = self.taxtree_helper.get_bid_taxonomy_map()
         self.assertEqual(len(bid_tax_map), 2 * len(bfu_tree) - 3)
-#        print sorted(bid_tax_map.items())
-        self.assertEqual(sorted(bid_tax_map.items()), sorted(self.expected_map.items()))
+        for bid in self.expected_map.iterkeys():
+            e_rec = self.expected_map[bid]
+            rec = bid_tax_map[bid]
+            self.assertEqual(e_rec[0], rec[0])
+            self.assertEqual(e_rec[1], rec[1])
+            self.assertAlmostEqual(e_rec[2], rec[2], 6)
                 
 class TaxClassifyHelperTests(unittest.TestCase):
 
     def setUp(self):
         self.testfile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "testfiles")
-        self.tax_fname = os.path.join(self.testfile_dir, "test.tax")
+        self.tax_fname = os.path.join(self.testfile_dir, "test_clean.tax")
         cfg = EpacClassifierConfig()
 
-        map_fname = os.path.join(self.testfile_dir, "bid_tax_map.txt")
+        map_fname = os.path.join(self.testfile_dir, "bid_tax_map2.txt")
         self.bid_tax_map = {}
         with open(map_fname) as inf:
             for line in inf:
-                bid, ranks_str = line.strip().split("\t")
-                self.bid_tax_map[bid] = ranks_str.split(";")
+                bid, rank_id, rdiff, brlen = line.strip().split("\t")
+                self.bid_tax_map[bid] = (rank_id, int(rdiff), float(brlen))
         
         self.classify_helper = TaxClassifyHelper(cfg, self.bid_tax_map)
 
@@ -74,7 +78,7 @@ class TaxClassifyHelperTests(unittest.TestCase):
         expected_assign_map = {}
         with open(assign_fname) as inf:
             for line in inf:
-                sid, ranks_str = line.strip().split("\t")
+                sid, ranks_str, lws = line.strip().split("\t")
                 expected_assign_map[sid] = ranks_str.split(";")
     
         jplace_fname = os.path.join(self.testfile_dir, "test.jplace")
