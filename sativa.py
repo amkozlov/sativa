@@ -576,8 +576,8 @@ Run name of the previous (terminated) job must be specified via -n option.""")
     parser.add_argument("-j", dest="jplace_fname", default=None,
             help="""Do not call RAxML EPA, use existing .jplace file as input instead. 
             This could be also a directory with *.jplace files.""")
-    parser.add_argument("-p", dest="rand_seed", type=int, default=None,
-            help="""Random seed to be used with RAxML. Default: current system time.""")
+    parser.add_argument("-p", dest="rand_seed", type=int, default=12345,
+            help="""Random seed to be used with RAxML. Default: 12345""")
     parser.add_argument("-P", dest="brlen_pv", type=float, default=0.,
             help="""P-value for branch length Erlang test. Default: 0=off\n""")
     parser.add_argument("-l", dest="min_lhw", type=float, default=0.,
@@ -659,6 +659,9 @@ def print_run_info(config):
     print ""
     config.print_version("SATIVA")
     
+    call_str = " ".join(sys.argv)
+    config.log.info("SATIVA was called as follows:\n\n%s\n" % call_str)
+    
     if config.verbose:
         config.log.info("Mislabels search is running with the following parameters:")
         if config.align_fname:
@@ -673,7 +676,7 @@ def print_run_info(config):
         config.log.info(" Output directory:                 %s", os.path.abspath(config.output_dir))
         config.log.info(" Job name / output files prefix:   %s", config.name)
         config.log.info(" Model of rate heterogeneity:      %s", config.raxml_model)
-        config.log.info(" P-value for branch length test:   %g", config.brlen_pv)
+#        config.log.info(" P-value for branch length test:   %g", config.brlen_pv)
         config.log.info(" Number of threads:                %d", config.num_threads)
         config.log.info("")
 
