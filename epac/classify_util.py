@@ -324,8 +324,11 @@ class TaxClassifyHelper:
                   parent_rank = Taxonomy.get_rank_uid(ranks, lowest_rank_lvl - rdiff)
                   rw_own[lowest_rank] = rw_own.get(lowest_rank, 0) + lweight * (1 - self.parent_lhw_coeff)
                   rw_own[parent_rank] = rw_own.get(parent_rank, 0) + lweight * self.parent_lhw_coeff
-                  # correct total rank for the lowest level
-                  rw_total[lowest_rank] = rw_total.get(lowest_rank, 0) - lweight * self.parent_lhw_coeff
+                  # correct total lhw for all levels between "parent" and "lowest"
+                  # NOTE: all those intermediate ranks are in fact indistinguishable, e.g. a family which contains a single genus
+                  for r in range(rdiff):
+                    interim_rank = Taxonomy.get_rank_uid(ranks, lowest_rank_lvl - r)
+                    rw_total[interim_rank] = rw_total.get(interim_rank, 0) - lweight * self.parent_lhw_coeff
                 else:
                   rw_own[lowest_rank] = rw_own.get(lowest_rank, 0) + lweight
 #            else:
