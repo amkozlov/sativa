@@ -169,6 +169,14 @@ class LeaveOneTest:
             self.mislabels.append(mis_rec)
             
         return mis_rec
+        
+    def filter_mislabels(self):
+        filtered_mis = []
+        for i in range(len(self.mislabels)):
+            if self.mislabels[i]['conf'] >= self.cfg.conf_cutoff:
+                filtered_mis.append(self.mislabels[i])
+        
+        self.mislabels = filtered_mis
 
     def check_rank_tax_labels(self, rank_name, orig_ranks, ranks, lws):
         mislabel_lvl = -1
@@ -540,6 +548,7 @@ class LeaveOneTest:
                 self.write_mislabels(final=False)
             self.run_final_epa_test()
 
+        self.filter_mislabels()
         self.sort_mislabels()
         self.write_mislabels()
         config.log.info("\nTotal mislabels: %d / %.2f %%", len(self.mislabels), (float(len(self.mislabels)) / self.reftree_size * 100))
@@ -572,12 +581,14 @@ Run name of the previous (terminated) job must be specified via -n option.""")
     parser.add_argument("-c", dest="config_fname", default=None,
             help="Config file name.")
     parser.add_argument("-r", dest="ref_fname",
-            help="""Specify the reference alignment and taxonomy in json format.""")
+            help="""Specify the reference alignment and taxonomy in refjson format.""")
     parser.add_argument("-j", dest="jplace_fname", default=None,
             help="""Do not call RAxML EPA, use existing .jplace file as input instead. 
             This could be also a directory with *.jplace files.""")
     parser.add_argument("-p", dest="rand_seed", type=int, default=12345,
             help="""Random seed to be used with RAxML. Default: 12345""")
+    parser.add_argument("-C", dest="conf_cutoff", type=float, default=0.,
+            help="""Confidence cut-off between 0 and 1. Default: 0\n""")
     parser.add_argument("-P", dest="brlen_pv", type=float, default=0.,
             help="""P-value for branch length Erlang test. Default: 0=off\n""")
     parser.add_argument("-l", dest="min_lhw", type=float, default=0.,
@@ -643,6 +654,9 @@ def check_args(args, parser):
     if args.min_lhw < 0 or args.min_lhw > 1.0:
          args.min_lhw = 0.0
     
+    if args.conf_cutoff < 0 or args.conf_cutoff > 1.0:
+         args.min_lhw = 0.0
+
     sativa_home = os.path.dirname(os.path.abspath(__file__))
     if not args.config_fname:
         args.config_fname = os.path.join(sativa_home, "sativa.cfg")
@@ -676,6 +690,7 @@ def print_run_info(config):
         config.log.info(" Output directory:                 %s", os.path.abspath(config.output_dir))
         config.log.info(" Job name / output files prefix:   %s", config.name)
         config.log.info(" Model of rate heterogeneity:      %s", config.raxml_model)
+        config.log.info(" Confidence cut-off:               %f", config.conf_cutoff)
 #        config.log.info(" P-value for branch length test:   %g", config.brlen_pv)
         config.log.info(" Number of threads:                %d", config.num_threads)
         config.log.info("")

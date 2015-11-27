@@ -359,6 +359,7 @@ class SativaConfig(EpacTrainerConfig):
         self.min_lhw = args.min_lhw
         self.brlen_pv = args.brlen_pv
         self.ranktest = args.ranktest
+        self.conf_cutoff = args.conf_cutoff
         self.jplace_fname = args.jplace_fname
         
         self.output_interim_files = True
