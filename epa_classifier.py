@@ -53,8 +53,8 @@ class EpaClassifier:
         self.bid_taxonomy_map = self.refjson.get_branch_tax_map()
         if not self.bid_taxonomy_map:
             # old file format (before 1.6), need to rebuild this map from scratch
-            th = TaxTreeHelper(self.cfg, self.origin_taxonomy)
-            th.set_mf_rooted_tree(self.tax_tree)
+            th = TaxTreeHelper(self.cfg, self.refjson.get_origin_taxonomy())
+            th.set_mf_rooted_tree(self.refjson.get_tax_tree())
             th.set_bf_unrooted_tree(self.refjson.get_reftree())
             self.bid_taxonomy_map = th.get_bid_taxonomy_map()        
         
