@@ -138,6 +138,8 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
         self.min_confidence = 0.2
         self.num_threads = multiprocessing.cpu_count()
         self.compress_patterns = False
+        self.use_bfgs = False
+        self.save_memory = False
         self.taxa_ident_thres = 0.6
         self.debug = False
         self.restart = False
@@ -354,7 +356,6 @@ class SativaConfig(EpacTrainerConfig):
 
         EpacTrainerConfig.__init__(self, args)
 
-#        self.compress_patterns = True
         self.taxassign_method = args.taxassign_method
         self.min_lhw = args.min_lhw
         self.brlen_pv = args.brlen_pv
@@ -363,6 +364,9 @@ class SativaConfig(EpacTrainerConfig):
         self.jplace_fname = args.jplace_fname
         
         self.output_interim_files = True
+        self.compress_patterns = True
+        self.use_bfgs = True
+        self.save_memory = False
 
         if self.refjson_fname:
             self.load_refjson = True

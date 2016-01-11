@@ -84,6 +84,9 @@ class RaxmlWrapper:
         elif mode == "epa":
             raxml_params += ["-f", "v"]
             result_file_stem = "portableTree"
+        elif mode == "epa_mp":
+            raxml_params += ["-f", "y"]
+            result_file_stem = "portableTree"
         else:
             print "ERROR: Invalid RAxML-EPA running mode: %s" % mode
             sys.exit()
@@ -96,7 +99,7 @@ class RaxmlWrapper:
         if self.cfg.epa_load_optmod and optmod_fname:
             if os.path.isfile(optmod_fname):
                 raxml_params += ["-R", optmod_fname]
-                if self.cfg.raxml_model == "GTRCAT" and not self.cfg.compress_patterns:
+                if self.cfg.raxml_model.startswith("GTRCAT") and not self.cfg.compress_patterns:
                     raxml_params +=  ["-H"]
             else:
                 print "WARNING: Binary model file not found: %s" % optmod_fname
@@ -140,7 +143,12 @@ class RaxmlWrapper:
         lparams  = []
         lparams += params
         lparams += ["-m", self.cfg.raxml_model, "-n", job_name]
-        lparams += ["--no-bfgs"]
+
+        if not self.cfg.use_bfgs:
+            lparams += ["--no-bfgs"]
+            
+        if self.cfg.save_memory:
+            lparams += ["-U"]
         
         if self.cfg.verbose:
             lparams += ["--verbose"]
@@ -207,11 +215,11 @@ class RaxmlWrapper:
                   
             if call_raxml:
                 invoc_str = self.run(rep_jobname, params, silent, chkpoint_fname)
-            lh = self.get_tree_lh(rep_jobname)
+            lh = self.get_tree_lh(rep_jobname, "GAMMA")
             if lh > best_lh:
                 best_lh = lh
                 best_jobname = rep_jobname
-            self.cfg.log.debug("Tree %d GAMMA-based logLH: %f\n" % (i, lh))
+            self.cfg.log.debug("Tree %d GAMMA-based logLH: %s\n" % (i, str(lh)))
         
         best_fname = self.info_fname(best_jobname)
         dst_fname = self.info_fname(job_name)
@@ -255,15 +263,15 @@ class RaxmlWrapper:
         if not self.cfg.debug:
             FileUtils.remove_if_exists(script_fname)
             
-    def get_tree_lh(self, job_name):
+    def get_tree_lh(self, job_name, ratehet="GAMMA"):
         info_fname = self.info_fname(job_name)
         with open(info_fname, "r") as info_file:
             info_str = info_file.read()
         
-        lh_patterns = ["Final GAMMA-based Score of best tree ",
-                       "Final GAMMA  likelihood: ",
-                       "GAMMA-based likelihood ",
-                       "CAT-based likelihood "]
+        lh_patterns = [
+                       "Final %s  likelihood: " % ratehet,
+                       "%s-based likelihood " % ratehet]
+                       
         m = None
         for pat in lh_patterns:
             m = re.search('(?<=%s)[0-9.\-]+' % pat, info_str)

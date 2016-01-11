@@ -347,9 +347,12 @@ class RefTreeBuilder:
             raxml_params = ["-f", "e", "-s", self.reduced_refalign_fname, "-t", bfu_fname, "--no-seq-check"]
             if self.cfg.raxml_model.startswith("GTRCAT") and not self.cfg.compress_patterns:
                 raxml_params +=  ["-H"]
-            self.invocation_raxml_optmod = self.raxml_wrapper.run(self.optmod_job_name, raxml_params)
+            if self.cfg.restart and self.raxml_wrapper.result_exists(self.optmod_job_name):
+                self.invocation_raxml_optmod = self.raxml_wrapper.get_invocation_str(self.optmod_job_name)
+                self.cfg.log.debug("\nUsing existing optimized tree and parameters found in: %s\n", self.raxml_wrapper.result_fname(self.optmod_job_name))
+            else:
+                self.invocation_raxml_optmod = self.raxml_wrapper.run(self.optmod_job_name, raxml_params)
             if self.raxml_wrapper.result_exists(self.optmod_job_name):
-                self.reftree_loglh = self.raxml_wrapper.get_tree_lh(self.optmod_job_name)
                 self.raxml_wrapper.copy_result_tree(self.optmod_job_name, self.reftree_bfu_fname)
                 self.raxml_wrapper.copy_optmod_params(self.optmod_job_name, self.optmod_fname)
 
@@ -357,6 +360,7 @@ class RefTreeBuilder:
                   mod_name = "CAT"
                 else:
                   mod_name = "GAMMA" 
+                self.reftree_loglh = self.raxml_wrapper.get_tree_lh(self.optmod_job_name, mod_name)
                 self.cfg.log.debug("\n%s-based logLH of the reference tree: %f\n" % (mod_name, self.reftree_loglh))
             else:
                 errmsg = "RAxML run failed (model optimization), please examine the log for details: %s" \
@@ -390,7 +394,7 @@ class RefTreeBuilder:
             fout.write("A"*self.refalign_width + "\n")        
         
         # TODO always load model regardless of the config file settings?
-        epa_result = self.raxml_wrapper.run_epa(self.epalbl_job_name, self.lblalign_fname, self.reftree_bfu_fname, self.optmod_fname)
+        epa_result = self.raxml_wrapper.run_epa(self.epalbl_job_name, self.lblalign_fname, self.reftree_bfu_fname, self.optmod_fname, mode="epa_mp")
         self.reftree_lbl_str = epa_result.get_std_newick_tree()
         self.raxml_version = epa_result.get_raxml_version()
         self.invocation_raxml_epalbl = epa_result.get_raxml_invocation()
