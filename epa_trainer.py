@@ -326,7 +326,7 @@ class RefTreeBuilder:
         self.reduced_refalign_fname = self.raxml_wrapper.reduce_alignment(self.refalign_fname)
         
         self.cfg.log.debug("\nConstrained ML inference: \n")
-        raxml_params = ["-s", self.reduced_refalign_fname, "-g", self.reftree_mfu_fname, "--no-seq-check"] 
+        raxml_params = ["-s", self.reduced_refalign_fname, "-g", self.reftree_mfu_fname, "--no-seq-check", "-N", str(self.cfg.rep_num)] 
         if self.cfg.mfresolv_method  == "fast":
             raxml_params += ["-D"]
         elif self.cfg.mfresolv_method  == "ultrafast":
@@ -335,37 +335,46 @@ class RefTreeBuilder:
             self.invocation_raxml_multif = self.raxml_wrapper.get_invocation_str(self.mfresolv_job_name)
             self.cfg.log.debug("\nUsing existing ML tree found in: %s\n", self.raxml_wrapper.result_fname(self.mfresolv_job_name))
         else:
-            self.invocation_raxml_multif = self.raxml_wrapper.run_multiple(self.mfresolv_job_name, raxml_params, self.cfg.rep_num)
-        if self.raxml_wrapper.result_exists(self.mfresolv_job_name):        
-#            self.raxml_wrapper.copy_result_tree(self.mfresolv_job_name, self.reftree_bfu_fname)
-#            self.raxml_wrapper.copy_optmod_params(self.mfresolv_job_name, self.optmod_fname)
-
-            bfu_fname = self.raxml_wrapper.result_fname(self.mfresolv_job_name)
-
-            # RAxML call to optimize model parameters and write them down to the binary model file
-            self.cfg.log.debug("\nOptimizing model parameters: \n")
-            raxml_params = ["-f", "e", "-s", self.reduced_refalign_fname, "-t", bfu_fname, "--no-seq-check"]
-            if self.cfg.raxml_model.startswith("GTRCAT") and not self.cfg.compress_patterns:
-                raxml_params +=  ["-H"]
-            if self.cfg.restart and self.raxml_wrapper.result_exists(self.optmod_job_name):
-                self.invocation_raxml_optmod = self.raxml_wrapper.get_invocation_str(self.optmod_job_name)
-                self.cfg.log.debug("\nUsing existing optimized tree and parameters found in: %s\n", self.raxml_wrapper.result_fname(self.optmod_job_name))
+            self.invocation_raxml_multif = self.raxml_wrapper.run(self.mfresolv_job_name, raxml_params)
+#            self.invocation_raxml_multif = self.raxml_wrapper.run_multiple(self.mfresolv_job_name, raxml_params, self.cfg.rep_num)
+            if self.cfg.mfresolv_method  == "ultrafast":
+              self.raxml_wrapper.copy_result_tree(self.mfresolv_job_name, self.raxml_wrapper.besttree_fname(self.mfresolv_job_name))
+              
+        if self.raxml_wrapper.besttree_exists(self.mfresolv_job_name):        
+            if not self.cfg.reopt_model:
+                self.raxml_wrapper.copy_best_tree(self.mfresolv_job_name, self.reftree_bfu_fname)
+                self.raxml_wrapper.copy_optmod_params(self.mfresolv_job_name, self.optmod_fname)
+                self.invocation_raxml_optmod = ""
+                job_name = self.mfresolv_job_name
             else:
-                self.invocation_raxml_optmod = self.raxml_wrapper.run(self.optmod_job_name, raxml_params)
-            if self.raxml_wrapper.result_exists(self.optmod_job_name):
-                self.raxml_wrapper.copy_result_tree(self.optmod_job_name, self.reftree_bfu_fname)
-                self.raxml_wrapper.copy_optmod_params(self.optmod_job_name, self.optmod_fname)
+                bfu_fname = self.raxml_wrapper.besttree_fname(self.mfresolv_job_name)
+                job_name = self.optmod_job_name
 
-                if self.cfg.raxml_model.startswith("GTRCAT"):
-                  mod_name = "CAT"
+                # RAxML call to optimize model parameters and write them down to the binary model file
+                self.cfg.log.debug("\nOptimizing model parameters: \n")
+                raxml_params = ["-f", "e", "-s", self.reduced_refalign_fname, "-t", bfu_fname, "--no-seq-check"]
+                if self.cfg.raxml_model.startswith("GTRCAT") and not self.cfg.compress_patterns:
+                    raxml_params +=  ["-H"]
+                if self.cfg.restart and self.raxml_wrapper.result_exists(self.optmod_job_name):
+                    self.invocation_raxml_optmod = self.raxml_wrapper.get_invocation_str(self.optmod_job_name)
+                    self.cfg.log.debug("\nUsing existing optimized tree and parameters found in: %s\n", self.raxml_wrapper.result_fname(self.optmod_job_name))
                 else:
-                  mod_name = "GAMMA" 
-                self.reftree_loglh = self.raxml_wrapper.get_tree_lh(self.optmod_job_name, mod_name)
-                self.cfg.log.debug("\n%s-based logLH of the reference tree: %f\n" % (mod_name, self.reftree_loglh))
+                    self.invocation_raxml_optmod = self.raxml_wrapper.run(self.optmod_job_name, raxml_params)
+                if self.raxml_wrapper.result_exists(self.optmod_job_name):
+                    self.raxml_wrapper.copy_result_tree(self.optmod_job_name, self.reftree_bfu_fname)
+                    self.raxml_wrapper.copy_optmod_params(self.optmod_job_name, self.optmod_fname)
+                else:
+                    errmsg = "RAxML run failed (model optimization), please examine the log for details: %s" \
+                            % self.raxml_wrapper.make_raxml_fname("output", self.optmod_job_name)
+                    self.cfg.exit_fatal_error(errmsg)
+                    
+            if self.cfg.raxml_model.startswith("GTRCAT"):
+              mod_name = "CAT"
             else:
-                errmsg = "RAxML run failed (model optimization), please examine the log for details: %s" \
-                        % self.raxml_wrapper.make_raxml_fname("output", self.optmod_job_name)
-                self.cfg.exit_fatal_error(errmsg)
+              mod_name = "GAMMA" 
+            self.reftree_loglh = self.raxml_wrapper.get_tree_lh(job_name, mod_name)
+            self.cfg.log.debug("\n%s-based logLH of the reference tree: %f\n" % (mod_name, self.reftree_loglh))
+
         else:
             errmsg = "RAxML run failed (mutlifurcation resolution), please examine the log for details: %s" \
                     % self.raxml_wrapper.make_raxml_fname("output", self.mfresolv_job_name)

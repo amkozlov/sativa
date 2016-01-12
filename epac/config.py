@@ -294,6 +294,8 @@ class EpacTrainerConfig(EpacConfig):
     def set_defaults(self):
         EpacConfig.set_defaults(self)
         self.no_hmmer = False
+        # whether model parameters should be re-optimized from scratch on the best topology using "-f e"
+        self.reopt_model = False
         self.dup_rank_names = "ignore"
         self.wrong_rank_count = "ignore"
         self.taxassign_method = "1"

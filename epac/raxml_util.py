@@ -268,10 +268,10 @@ class RaxmlWrapper:
         with open(info_fname, "r") as info_file:
             info_str = info_file.read()
         
-        lh_patterns = [
+        lh_patterns = [ "Final %s-based Score of best tree " % ratehet,
                        "Final %s  likelihood: " % ratehet,
                        "%s-based likelihood " % ratehet]
-                       
+        
         m = None
         for pat in lh_patterns:
             m = re.search('(?<=%s)[0-9.\-]+' % pat, info_str)
@@ -297,6 +297,9 @@ class RaxmlWrapper:
     def result_fname(self, job_name):
         return self.make_raxml_fname("result", job_name)
     
+    def besttree_fname(self, job_name):
+        return self.make_raxml_fname("bestTree", job_name)
+
     def info_fname(self, job_name):
         return self.make_raxml_fname("info", job_name)
 
@@ -312,6 +315,12 @@ class RaxmlWrapper:
         else:
             return False
 
+    def besttree_exists(self, job_name):
+        if os.path.isfile(self.besttree_fname(job_name)):
+            return True
+        else:
+            return False
+
     def epa_result_exists(self, job_name):
         if os.path.isfile(self.make_raxml_fname("labelledTree", job_name)):
             return True
@@ -320,6 +329,10 @@ class RaxmlWrapper:
 
     def copy_result_tree(self, job_name, dst_fname):
         src_fname = self.result_fname(job_name)
+        shutil.copy(src_fname, dst_fname)
+
+    def copy_best_tree(self, job_name, dst_fname):
+        src_fname = self.besttree_fname(job_name)
         shutil.copy(src_fname, dst_fname)
 
     def copy_optmod_params(self, job_name, dst_fname):
