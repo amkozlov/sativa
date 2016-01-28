@@ -364,11 +364,13 @@ class SativaConfig(EpacTrainerConfig):
         self.ranktest = args.ranktest
         self.conf_cutoff = args.conf_cutoff
         self.jplace_fname = args.jplace_fname
+        self.final_jplace_fname = args.final_jplace_fname
         
+        self.save_memory = args.save_memory
+
         self.output_interim_files = True
         self.compress_patterns = True
         self.use_bfgs = True
-        self.save_memory = False
 
         if self.refjson_fname:
             self.load_refjson = True

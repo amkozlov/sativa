@@ -464,11 +464,27 @@ class LeaveOneTest:
 
         th = TaxTreeHelper(self.cfg, self.origin_taxonomy)
         th.set_mf_rooted_tree(tmp_taxtree)
-            
-        epa_result = self.run_epa_once(tmp_reftree)
-        
-        reftree_epalbl_str = epa_result.get_std_newick_tree()        
-        placements = epa_result.get_placement()
+         
+        reftree_epalbl_str = None    
+        if self.cfg.final_jplace_fname:
+            if os.path.isdir(self.cfg.final_jplace_fname):
+                jplace_fmask = os.path.join(self.cfg.final_jplace_fname, '*.jplace')
+            else:
+                jplace_fmask = self.cfg.final_jplace_fname
+
+            jplace_fname_list = glob.glob(jplace_fmask)
+            placements = []
+            for jplace_fname in jplace_fname_list:
+                jp = EpaJsonParser(jplace_fname)
+                placements += jp.get_placement()
+                if not reftree_epalbl_str:
+                  reftree_epalbl_str = jp.get_std_newick_tree()        
+                
+            config.log.debug("Loaded %d final epa placements from %s\n", len(placements), jplace_fmask)
+        else:
+            epa_result = self.run_epa_once(tmp_reftree)
+            reftree_epalbl_str = epa_result.get_std_newick_tree()        
+            placements = epa_result.get_placement()
         
         # update branchid-taxonomy mapping to account for possible changes in branch numbering
         reftree_tax = Tree(reftree_epalbl_str)
@@ -583,7 +599,10 @@ Run name of the previous (terminated) job must be specified via -n option.""")
     parser.add_argument("-r", dest="ref_fname",
             help="""Specify the reference alignment and taxonomy in refjson format.""")
     parser.add_argument("-j", dest="jplace_fname", default=None,
-            help="""Do not call RAxML EPA, use existing .jplace file as input instead. 
+            help="""Do not call RAxML to perform EPA leave-one-out test, use existing .jplace file as input instead. 
+            This could be also a directory with *.jplace files.""")
+    parser.add_argument("-J", dest="final_jplace_fname", default=None,
+            help="""Do not call RAxML to perform final EPA classification, use existing .jplace file as input instead. 
             This could be also a directory with *.jplace files.""")
     parser.add_argument("-p", dest="rand_seed", type=int, default=12345,
             help="""Random seed to be used with RAxML. Default: 12345""")
@@ -601,6 +620,8 @@ Run name of the previous (terminated) job must be specified via -n option.""")
             thorough    use stardard constrainted RAxML tree search (default)
             fast        use RF distance as search convergence criterion (RAxML -D option)
             ultrafast   optimize model+branch lengths only (RAxML -f e option)""")
+    parser.add_argument("-S", dest="save_memory", action="store_true",
+            help="""Enable RAxML memory saving (useful for large and gappy alignments)""")
     parser.add_argument("-debug", dest="debug", action="store_true",
             help="""Debug mode, intermediate files will not be cleaned up.""")
     parser.add_argument("-ranktest", dest="ranktest", action="store_true",

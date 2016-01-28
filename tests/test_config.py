@@ -59,7 +59,9 @@ class ConfigTests(unittest.TestCase):
         ns.brlen_pv = None
         ns.ranktest = None
         ns.jplace_fname = None
+        ns.final_jplace_fname = None
         ns.conf_cutoff = None
+        ns.save_memory = None
         return ns
 
     def check_common_config(self, cfg):
