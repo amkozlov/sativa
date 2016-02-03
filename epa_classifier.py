@@ -225,17 +225,18 @@ class EpaClassifier:
             if len(edges) > 0:
                 ranks, lws = self.classify_helper.classify_seq(edges)
                 
-                isnovo = self.novelty_check(place_edge = str(edges[0][0]), ranks=ranks, lws=lws)
                 rankout = self.print_ranks(ranks, lws, self.cfg.min_lhw)
                 
                 if rankout == None:
                     noassign_list.append(origin_taxon_name)
                 else:
                     output = "%s\t%s\t" % (origin_taxon_name, rankout)
-                    if isnovo: 
-                        output += "*"
-                    else:
-                        output +="o"
+                    if self.cfg.check_novelty:
+                        isnovo = self.novelty_check(place_edge = str(edges[0][0]), ranks=ranks, lws=lws)
+                        if isnovo: 
+                            output += "*"
+                        else:
+                            output +="o"
                     if self.cfg.verbose:
                         print(output) 
                     if fo:
@@ -330,7 +331,7 @@ class EpaClassifier:
                 for leaf in leafnodes:
                     br_num = leaf.B
                     branks = self.bid_taxonomy_map[br_num]
-                    if branks[lowrank] == "-":
+                    if lowrank >= len(branks) or branks[lowrank] == "-":
                         flag = False
                         break
                         

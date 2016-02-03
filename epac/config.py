@@ -338,6 +338,8 @@ class EpacClassifierConfig(EpacConfig):
 
     def __init__(self, args=None):
         EpacConfig.__init__(self, args)
+        
+        self.check_novelty = False
 
         if args:
             self.taxassign_method = args.taxassign_method
