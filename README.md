@@ -2,10 +2,12 @@ SATIVA
 ======
 
 [![Build Status](https://travis-ci.org/amkozlov/sativa.svg?branch=master)](https://travis-ci.org/amkozlov/sativa)
+[![License](https://img.shields.io/badge/license-GPL3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0.en.html)
 
 SATIVA (**S**emi-**A**utomatic **T**axonomy **I**mprovement and **V**alidation **A**lgorithm) is a pipeline
-that uses Evolutionary Placement Algorithm (EPA) to identify taxonomically mislabeled sequences
-and suggest corrections 
+that uses Evolutionary Placement Algorithm (EPA, [1]) to identify taxonomically mislabeled sequences
+and suggest corrections. Internally, SATIVA relies on RAxML [2] for likelihood computations as well as on 
+the ETE library[3] for tree topology manupulations in Python.
 
 Installation
 ------------
@@ -75,3 +77,21 @@ Citation
 
 Alexey M. Kozlov, Jiajie Zhang, Pelin Yilmaz, Frank Oliver Glöckner and Alexandros Stamatakis.
 **Phylogeny-aware Identification and Correction of Taxonomically Mislabeled Sequences.** *In preparation.*
+
+References
+----------
+
+[1] Berger, S. A., Krompass, D., and Stamatakis, A. (2011) 
+**Performance, Accuracy, and Web Server for Evolutionary Placement of Short Sequence Reads under Maximum Likelihood.**
+*Systematic Biology*, 60(3), 291–302.
+doi:[10.1093/sysbio/syr010](http://sysbio.oxfordjournals.org/content/60/3/291)
+
+[2] Stamatakis A. (2014)
+**RAxML version 8: a tool for phylogenetic analysis and post-analysis of large phylogenies.**
+*Bioinformatics*, 30(9): 1312-1313.
+doi:[10.1093/bioinformatics/btu033](http://dx.doi.org/10.1093/bioinformatics/btu033)
+
+[3] Huerta-Cepas, J., Dopazo, J., and Gabaldon, T. (2010) 
+**ETE: a python Environment for Tree Exploration.**
+*BMC bioinformatics*, 11(1), 24.
+doi:[10.1186/1471-2105-11-24](http://www.biomedcentral.com/1471-2105/11/24)
