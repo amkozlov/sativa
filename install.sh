@@ -31,10 +31,10 @@ case `uname` in
         export DARWIN=0
         GCC_VERSION=`gcc -dumpversion`
         COMPILER_NAME="gcc $GCC_VERSION"
-        if [ "$GCC_VERSION" \> "4.6.0" ]; then
+        if [ "$GCC_VERSION" \> "4.6.0" ] || [ "$GCC_VERSION" = "4.6.0" ] || [ "$GCC_VERSION" = "4.6" ]; then
            export USE_AVX=yes
         fi
-        if [ "$GCC_VERSION" \> "4.7.0" ] || [ "$GCC_VERSION" = "4.7.0" ]; then
+        if [ "$GCC_VERSION" \> "4.7.0" ] || [ "$GCC_VERSION" = "4.7.0" ] || [ "$GCC_VERSION" = "4.7" ]; then
            export USE_AVX2=yes
         fi
         ;;
@@ -48,13 +48,6 @@ fi
 
 if [ -z $NO_AVX ] && [ $USE_AVX != "yes" ] && cpu_has_feature avx; then
    echo "Your CPU provides AVX instuctions, but you default compiler ($COMPILER_NAME) is too old to support them."
-   echo "Please consider using a more recent compiler (GCC 4.6+ or clang 3.3+) for optimal performance."
-   echo "If you want to use a (slower) SSE3 RAxML version instead, please run this script with --no-avx option."
-   exit
-fi
-
-if [ -z $NO_AVX ] && [ $USE_AVX2 != "yes" ] && cpu_has_feature avx2; then
-   echo "Your CPU provides AVX2 instuctions, but you default compiler ($COMPILER_NAME) is too old to support them."
    echo "Please consider using a more recent compiler (GCC 4.6+ or clang 3.3+) for optimal performance."
    echo "If you want to use a (slower) SSE3 RAxML version instead, please run this script with --no-avx option."
    exit
