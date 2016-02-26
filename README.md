@@ -1,6 +1,8 @@
 SATIVA
 ======
 
+[![Build Status](https://travis-ci.org/amkozlov/sativa.svg?branch=master)](https://travis-ci.org/amkozlov/sativa)
+
 SATIVA (**S**emi-**A**utomatic **T**axonomy **I**mprovement and **V**alidation **A**lgorithm) is a pipeline
 that uses Evolutionary Placement Algorithm (EPA) to identify taxonomically mislabeled sequences
 and suggest corrections 
