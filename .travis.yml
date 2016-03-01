@@ -5,4 +5,4 @@ os:
 compiler:
   - gcc
   - clang
-script: ./install.sh
+script: ./install.sh; ./test.sh

@@ -17,6 +17,10 @@ from epac.taxonomy_util import TaxCode, Taxonomy
 from epac.classify_util import TaxTreeHelper,TaxClassifyHelper
 import epa_trainer
 
+DISCLAIMER="""WARNING: The revised taxon name suggested here is not necessarily the one that has priority in nomenclature. 
+Our suggestion should only be taken as indicative of an affiliation to the same group, whose correct name must be determined 
+in an additional step according to the specific rules of nomenclature that apply to the studied organisms."""
+
 class LeaveOneTest:
     def __init__(self, config):
         self.cfg = config
@@ -279,12 +283,17 @@ class LeaveOneTest:
             out_fname = self.premis_fname
         
         with open(out_fname, "w") as fo_all:
+            if final:
+                for line in DISCLAIMER.split("\n"):
+                  fo_all.write(";%s\n" % line)
+                fo_all.write(";\n")  
             fields = ["SeqID", "MislabeledLevel", "OriginalLabel", "ProposedLabel", "Confidence", "OriginalTaxonomyPath", "ProposedTaxonomyPath", "PerRankConfidence"]
             if self.cfg.ranktest:
                 fields += ["HigherRankMisplacedConfidence"]
             header = ";" + "\t".join(fields) + "\n"
             fo_all.write(header)
             if self.cfg.verbose and len(self.mislabels) > 0 and final:
+                print DISCLAIMER, "\n"
                 print "Mislabeled sequences:\n"
                 print header 
             for mis_rec in self.mislabels:
