@@ -47,8 +47,8 @@ class ScriptTests(unittest.TestCase):
         tax_fname = os.path.join(self.testfile_dir, "ref.tax")
         call_str = [exec_script, "-s", ali_fname, "-t", tax_fname, "-n", "testcl", "-x", "BAC", "-o", self.out_dir, "-no-hmmer", "-T", "2"]
         try:
-#            out_str = check_output(call_str, stderr=STDOUT)
-            call(call_str)
+            out_str = check_output(call_str, stderr=STDOUT)
+#            call(call_str)
         except CalledProcessError as ex:
             print "\n\nCommand line: %s\n\nOutput:\n%s\n" % (ex.cmd, ex.output)
             self.assertTrue(False, msg="Error running epa_trainer.py script")
@@ -61,8 +61,8 @@ class ScriptTests(unittest.TestCase):
         call_str = [exec_script, "-r", refjson_fname, "-q", query_fname, "-n", "testcl", "-x", "-o", self.out_dir, "-T", "2"]
         
         try:
-#            out_str = check_output(call_str, stderr=STDOUT)
-            call(call_str)
+            out_str = check_output(call_str, stderr=STDOUT)
+#            call(call_str)
         except CalledProcessError as ex:
             print "\n\nCommand line: %s\n\nOutput:\n%s\n" % (ex.cmd, ex.output)
             self.assertTrue(False, msg="Error running epa_classifier.py script")        
