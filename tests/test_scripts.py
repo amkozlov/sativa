@@ -22,6 +22,7 @@ class ScriptTests(unittest.TestCase):
         self.example_dir = os.path.join(self.sativa_dir, "example")
         self.out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tmpout")
         os.mkdir(self.out_dir)
+        print "after setup"
     
     def tearDown(self):
         shutil.rmtree(self.out_dir)
@@ -47,11 +48,13 @@ class ScriptTests(unittest.TestCase):
         tax_fname = os.path.join(self.testfile_dir, "ref.tax")
         call_str = [exec_script, "-s", ali_fname, "-t", tax_fname, "-n", "testcl", "-x", "BAC", "-o", self.out_dir, "-no-hmmer"]
         try:
-            out_str = check_output(call_str, stderr=STDOUT)
-#            call(call_str)
+#            out_str = check_output(call_str, stderr=STDOUT)
+            call(call_str)
         except CalledProcessError as ex:
             print "\n\nCommand line: %s\n\nOutput:\n%s\n" % (ex.cmd, ex.output)
             self.assertTrue(False, msg="Error running epa_trainer.py script")
+
+        print "after trainer call"
 
         refjson_fname = os.path.join(self.out_dir, "testcl.refjson")
         self.assertTrue(os.path.isfile(refjson_fname))
@@ -61,11 +64,13 @@ class ScriptTests(unittest.TestCase):
         call_str = [exec_script, "-r", refjson_fname, "-q", query_fname, "-n", "testcl", "-x", "-o", self.out_dir]
         
         try:
-            out_str = check_output(call_str, stderr=STDOUT)
-#            call(call_str)
+#            out_str = check_output(call_str, stderr=STDOUT)
+            call(call_str)
         except CalledProcessError as ex:
             print "\n\nCommand line: %s\n\nOutput:\n%s\n" % (ex.cmd, ex.output)
             self.assertTrue(False, msg="Error running epa_classifier.py script")        
+
+        print "after classifier call"
 
         assign_fname = os.path.join(self.out_dir, "testcl.assignment.txt")
         self.assertTrue(os.path.isfile(assign_fname))
