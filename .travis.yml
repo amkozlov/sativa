@@ -7,4 +7,7 @@ matrix:
       os: osx
 script: 
   - ./install.sh
+  - python -v
+  - ./epa_trainer.py
+  - ./epa_classifier.py
   - ./test.sh
