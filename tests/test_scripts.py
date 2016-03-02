@@ -46,7 +46,7 @@ class ScriptTests(unittest.TestCase):
         exec_script = os.path.join(self.sativa_dir, "epa_trainer.py")
         ali_fname = os.path.join(self.testfile_dir, "ref.phy")
         tax_fname = os.path.join(self.testfile_dir, "ref.tax")
-        call_str = [exec_script, "-s", ali_fname, "-t", tax_fname, "-n", "testcl", "-x", "BAC", "-o", self.out_dir, "-no-hmmer"]
+        call_str = [exec_script, "-s", ali_fname, "-t", tax_fname, "-n", "testcl", "-x", "BAC", "-o", self.out_dir, "-no-hmmer", "-debug"]
         try:
 #            out_str = check_output(call_str, stderr=STDOUT)
             call(call_str)
