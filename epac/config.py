@@ -116,6 +116,14 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
         # command line setting has preference over config file and default
         if args.num_threads:
             self.num_threads = args.num_threads        
+        
+        # check that #threads doesn't exceed #cpus
+        if self.num_threads > multiprocessing.cpu_count():
+            errmsg = ("ERROR: You're about to run SATIVA with more threads(%d) than you have CPU cores(%d).\n" + \
+                      "       This would result in a MAJOR slowdown, and therefore not allowed. SATIVA will exist now.\n""" ) \
+                     % (self.num_threads, multiprocessing.cpu_count())
+            self.exit_user_error(errmsg)
+
         self.check_raxml()    
         
         if not self.restart:

@@ -39,20 +39,24 @@ SATIVA requires two files as an input: alignment (FASTA or PHYLIP) and a text fi
 annotations (matched by sequence name). Furtermore, you must choose the nomenclature code via the
 -x option (e.g., BAC(teriological) for Bacteria and Archaea).
 
-Sample command line:
+Sample command line to run SATIVA with 2 threads:
 
 ```sh
    cd example
-   ../sativa.py -s test.phy -t test.tax -x BAC
+   ../sativa.py -s test.phy -t test.tax -x BAC -T 2
 ```
 
 Output is a text file which contains a list of identified mislabels, along with the corresponding 
 confidence scores and proposed taxonomic corrections.
 
-For additional options, please refer to the online help: 
+**NOTE**: If you omit the `-T` parameter, SATIVA will start one thread per each logical CPU
+in your system. Although this is usually what you want, it might lead to a *major* slowdown
+if some of the CPUs are already reserved by other running programs (e.g., if you run SATIVA on 
+a shared server). If you encounter this problem, please try reducing the number of threads with `-T`!
+
+For additional options, please refer to the online help:
 
   `./sativa.py -h`
-
 
 GUI
 ---
