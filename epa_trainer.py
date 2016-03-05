@@ -83,7 +83,7 @@ class InputValidator:
             
         return self.corr_ranks, self.corr_seqid
         
-    def check_identical_seqs(self):
+    def build_seq_hash_map(self):
         seq_hash_map = {}
         for name, seq, comment, sid in self.alignment.iter_entries():
             ref_seq_name = EpacConfig.REF_SEQ_PREFIX + name
@@ -94,7 +94,11 @@ class InputValidator:
                     seq_hash_map[seq_hash] += [name]
                 else:
                     seq_hash_map[seq_hash] = [name]
-
+        return seq_hash_map
+    
+    def check_identical_seqs(self):
+        seq_hash_map = self.build_seq_hash_map()
+        
         self.dupseq_count = 0
         self.dupseq_sets = []
         for seq_hash, seq_ids in seq_hash_map.iteritems():
@@ -118,11 +122,10 @@ class InputValidator:
 
                 check_ids = coll_ids
                 
-        if self.verbose:
+        if self.dupseq_count > 0 and self.verbose:
             for dup_ids in self.dupseq_sets:
                 self.cfg.log.debug("NOTE: Following sequences are identical: %s", ", ".join(dup_ids))
-            if self.dupseq_count > 0:
-                self.cfg.log.debug("\nNOTE: Found %d sequence duplicates", self.dupseq_count)
+            self.cfg.log.debug("\nNOTE: Found %d sequence duplicates", self.dupseq_count)
                 
         return self.dupseq_count, self.dupseq_sets
 
@@ -319,6 +322,28 @@ class RefTreeBuilder:
         
         # now we can safely unroot the tree and remove internal node labels to make it suitable for raxml
         rt.write(outfile=self.reftree_mfu_fname, format=9)
+        
+    def opt_model(self):
+        bfu_fname = self.raxml_wrapper.besttree_fname(self.mfresolv_job_name)
+
+        # RAxML call to optimize model parameters and write them down to the binary model file
+        self.cfg.log.debug("\nOptimizing model parameters: \n")
+        raxml_params = ["-f", "e", "-s", self.reduced_refalign_fname, "-t", bfu_fname, "--no-seq-check"]
+        if self.cfg.raxml_model.startswith("GTRCAT") and not self.cfg.compress_patterns:
+            raxml_params +=  ["-H"]
+        if self.cfg.restart and self.raxml_wrapper.result_exists(self.optmod_job_name):
+            self.invocation_raxml_optmod = self.raxml_wrapper.get_invocation_str(self.optmod_job_name)
+            self.cfg.log.debug("\nUsing existing optimized tree and parameters found in: %s\n", self.raxml_wrapper.result_fname(self.optmod_job_name))
+        else:
+            self.invocation_raxml_optmod = self.raxml_wrapper.run(self.optmod_job_name, raxml_params)
+        if self.raxml_wrapper.result_exists(self.optmod_job_name):
+            self.raxml_wrapper.copy_result_tree(self.optmod_job_name, self.reftree_bfu_fname)
+            self.raxml_wrapper.copy_optmod_params(self.optmod_job_name, self.optmod_fname)
+        else:
+            errmsg = "RAxML run failed (model optimization), please examine the log for details: %s" \
+                    % self.raxml_wrapper.make_raxml_fname("output", self.optmod_job_name)
+            self.cfg.exit_fatal_error(errmsg)
+    
 
     # RAxML call to convert multifurcating tree to the strictly bifurcating one
     def resolve_multif(self):
@@ -341,32 +366,14 @@ class RefTreeBuilder:
               self.raxml_wrapper.copy_result_tree(self.mfresolv_job_name, self.raxml_wrapper.besttree_fname(self.mfresolv_job_name))
               
         if self.raxml_wrapper.besttree_exists(self.mfresolv_job_name):        
-            if not self.cfg.reopt_model:
+            if self.cfg.reopt_model:
+                self.opt_model()
+                job_name = self.optmod_job_name
+            else:
                 self.raxml_wrapper.copy_best_tree(self.mfresolv_job_name, self.reftree_bfu_fname)
                 self.raxml_wrapper.copy_optmod_params(self.mfresolv_job_name, self.optmod_fname)
                 self.invocation_raxml_optmod = ""
                 job_name = self.mfresolv_job_name
-            else:
-                bfu_fname = self.raxml_wrapper.besttree_fname(self.mfresolv_job_name)
-                job_name = self.optmod_job_name
-
-                # RAxML call to optimize model parameters and write them down to the binary model file
-                self.cfg.log.debug("\nOptimizing model parameters: \n")
-                raxml_params = ["-f", "e", "-s", self.reduced_refalign_fname, "-t", bfu_fname, "--no-seq-check"]
-                if self.cfg.raxml_model.startswith("GTRCAT") and not self.cfg.compress_patterns:
-                    raxml_params +=  ["-H"]
-                if self.cfg.restart and self.raxml_wrapper.result_exists(self.optmod_job_name):
-                    self.invocation_raxml_optmod = self.raxml_wrapper.get_invocation_str(self.optmod_job_name)
-                    self.cfg.log.debug("\nUsing existing optimized tree and parameters found in: %s\n", self.raxml_wrapper.result_fname(self.optmod_job_name))
-                else:
-                    self.invocation_raxml_optmod = self.raxml_wrapper.run(self.optmod_job_name, raxml_params)
-                if self.raxml_wrapper.result_exists(self.optmod_job_name):
-                    self.raxml_wrapper.copy_result_tree(self.optmod_job_name, self.reftree_bfu_fname)
-                    self.raxml_wrapper.copy_optmod_params(self.optmod_job_name, self.optmod_fname)
-                else:
-                    errmsg = "RAxML run failed (model optimization), please examine the log for details: %s" \
-                            % self.raxml_wrapper.make_raxml_fname("output", self.optmod_job_name)
-                    self.cfg.exit_fatal_error(errmsg)
                     
             if self.cfg.raxml_model.startswith("GTRCAT"):
               mod_name = "CAT"

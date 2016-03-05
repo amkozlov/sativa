@@ -99,6 +99,18 @@ class EpaClassifier:
                 fout.write(">" + name + "\n" + seq + "\n")
 
 
+    def write_combined_alignment(self):
+        self.query_count = 0
+        with open(self.epa_alignment, "w") as fout:
+            for name, seq, comment, sid in self.seqs.iter_entries():
+                ref_name = self.refjson.get_corr_seqid(EpacConfig.REF_SEQ_PREFIX + name)
+                if ref_name in self.refjson.get_sequences_names():
+                    seq_name = ref_name
+                else:
+                    seq_name = EpacConfig.QUERY_SEQ_PREFIX + name
+                    self.query_count += 1
+                fout.write(">" + seq_name + "\n" + seq + "\n")
+    
     def checkinput(self, query_fname, minp = 0.9):
         formats = ["fasta", "phylip", "iphylip", "phylip_relaxed", "iphylip_relaxed"]
         for fmt in formats:
@@ -112,16 +124,7 @@ class EpaClassifier:
 
         if self.ignore_refalign:
             self.cfg.log.info("Assuming query file contains reference sequences, skipping the alignment step...\n")
-            self.query_count = 0
-            with open(self.epa_alignment, "w") as fout:
-                for name, seq, comment, sid in self.seqs.iter_entries():
-                    ref_name = self.refjson.get_corr_seqid(EpacConfig.REF_SEQ_PREFIX + name)
-                    if ref_name in self.refjson.get_sequences_names():
-                        seq_name = ref_name
-                    else:
-                        seq_name = EpacConfig.QUERY_SEQ_PREFIX + name
-                        self.query_count += 1
-                    fout.write(">" + seq_name + "\n" + seq + "\n")
+            self.write_combined_alignment()
             return
             
         self.query_count = len(self.seqs)
@@ -177,37 +180,82 @@ class EpaClassifier:
             return ss[:-1] + "\t" + css[:-1]
 
 
+    def run_epa(self):
+        self.cfg.log.info("Running RAxML-EPA to place %d query sequences...\n" % self.query_count)
+        raxml = RaxmlWrapper(config)
+        reftree_fname = self.cfg.tmp_fname("ref_%NAME%.tre")
+        self.refjson.get_raxml_readable_tree(reftree_fname)
+        optmod_fname = self.cfg.tmp_fname("%NAME%.opt")
+        self.refjson.get_binary_model(optmod_fname)
+        job_name = self.cfg.subst_name("epa_%NAME%")
+
+        reftree_str = self.refjson.get_raxml_readable_tree()
+        reftree = Tree(reftree_str)
+
+        self.reftree_size = len(reftree.get_leaves())
+
+        # IMPORTANT: set EPA heuristic rate based on tree size!                
+        self.cfg.resolve_auto_settings(self.reftree_size)
+        # If we're loading the pre-optimized model, we MUST set the same rate het. mode as in the ref file        
+        if self.cfg.epa_load_optmod:
+            self.cfg.raxml_model = self.refjson.get_ratehet_model()
+
+        reduced_align_fname = raxml.reduce_alignment(self.epa_alignment)
+
+        jp = raxml.run_epa(job_name, reduced_align_fname, reftree_fname, optmod_fname)
+        
+        raxml.copy_epa_jplace(job_name, self.out_jplace_fname, move=True)
+        
+        return jp
+        
+    def run_ptp(self, jp):
+        full_aln = SeqGroup(self.epa_alignment)
+        species_list = epa_2_ptp(epa_jp = jp, ref_jp = self.refjson, full_alignment = full_aln, min_lw = 0.5, debug = self.cfg.debug)
+        
+        self.cfg.log.debug("Species clusters:")
+
+        if fout:
+            fo2 = open(fout+".species", "w")
+        else:
+            fo2 = None
+
+        for sp_cluster in species_list:
+            translated_taxa = []
+            for taxon in sp_cluster:
+                origin_taxon_name = EpacConfig.strip_query_prefix(taxon)
+                translated_taxa.append(origin_taxon_name)
+            s = ",".join(translated_taxa)
+            if fo2:
+                fo2.write(s + "\n")
+            self.cfg.log.debug(s)
+
+        if fo2:
+            fo2.close()
+            
+    def print_result_line(self, fo, line):
+        if self.cfg.verbose:
+            print(line)
+        if fo:
+            fo.write(line + "\n")
+            
+    def get_noalign_list(self):
+        noalign_list = []
+        if os.path.exists(self.noalign):
+            with open(self.noalign) as fnoa:
+                lines = fnoa.readlines()
+                for line in lines:
+                    taxon_name = line.strip()[1:]
+                    origin_taxon_name = EpacConfig.strip_query_prefix(taxon_name)
+                    noalign_list.append(origin_taxon_name) 
+        return noalign_list
+    
     def classify(self, query_fname, minp = 0.9, ptp = False):
         if self.jplace_fname:
             jp = EpaJsonParser(self.jplace_fname)
         else:        
             self.checkinput(query_fname, minp)
-
-            self.cfg.log.info("Running RAxML-EPA to place %d query sequences...\n" % self.query_count)
-            raxml = RaxmlWrapper(config)
-            reftree_fname = self.cfg.tmp_fname("ref_%NAME%.tre")
-            self.refjson.get_raxml_readable_tree(reftree_fname)
-            optmod_fname = self.cfg.tmp_fname("%NAME%.opt")
-            self.refjson.get_binary_model(optmod_fname)
-            job_name = self.cfg.subst_name("epa_%NAME%")
-
-            reftree_str = self.refjson.get_raxml_readable_tree()
-            reftree = Tree(reftree_str)
-
-            self.reftree_size = len(reftree.get_leaves())
-
-            # IMPORTANT: set EPA heuristic rate based on tree size!                
-            self.cfg.resolve_auto_settings(self.reftree_size)
-            # If we're loading the pre-optimized model, we MUST set the same rate het. mode as in the ref file        
-            if self.cfg.epa_load_optmod:
-                self.cfg.raxml_model = self.refjson.get_ratehet_model()
-
-            reduced_align_fname = raxml.reduce_alignment(self.epa_alignment)
-
-            jp = raxml.run_epa(job_name, reduced_align_fname, reftree_fname, optmod_fname)
+            jp = self.run_epa()
             
-            raxml.copy_epa_jplace(job_name, self.out_jplace_fname, move=True)
-        
         self.cfg.log.info("Assigning taxonomic labels based on EPA placements...\n")
  
         placements = jp.get_placement()
@@ -222,42 +270,24 @@ class EpaClassifier:
             taxon_name = place["n"][0]
             origin_taxon_name = EpacConfig.strip_query_prefix(taxon_name)
             edges = place["p"]
-            if len(edges) > 0:
-                ranks, lws = self.classify_helper.classify_seq(edges)
-                
-                rankout = self.print_ranks(ranks, lws, self.cfg.min_lhw)
-                
-                if rankout == None:
-                    noassign_list.append(origin_taxon_name)
-                else:
-                    output = "%s\t%s\t" % (origin_taxon_name, rankout)
-                    if self.cfg.check_novelty:
-                        isnovo = self.novelty_check(place_edge = str(edges[0][0]), ranks=ranks, lws=lws)
-                        if isnovo: 
-                            output += "*"
-                        else:
-                            output +="o"
-                    if self.cfg.verbose:
-                        print(output) 
-                    if fo:
-                        fo.write(output + "\n")
-            else:
+
+            ranks, lws = self.classify_helper.classify_seq(edges)
+            rankout = self.print_ranks(ranks, lws, self.cfg.min_lhw)
+
+            if rankout == None:
                 noassign_list.append(origin_taxon_name)
+            else:
+                output = "%s\t%s\t" % (origin_taxon_name, rankout)
+                if self.cfg.check_novelty:
+                    isnovo = self.novelty_check(place_edge = str(edges[0][0]), ranks=ranks, lws=lws)
+                    output += "*" if isnovo else "o"
+                self.print_result_line(fo, output)
         
-        if os.path.exists(self.noalign):
-            with open(self.noalign) as fnoa:
-                lines = fnoa.readlines()
-                for line in lines:
-                    taxon_name = line.strip()[1:]
-                    origin_taxon_name = EpacConfig.strip_query_prefix(taxon_name)
-                    noassign_list.append(origin_taxon_name)
-                        
+        noassign_list += self.get_noalign_list()
+                           
         for taxon_name in noassign_list:
             output = "%s\t\t\t?" % origin_taxon_name
-            if self.cfg.verbose:
-                print(output)
-            if fo:
-                fo.write(output + "\n")
+            self.print_result_line(fo, output)
         
         if fo:
             fo.close()
@@ -268,29 +298,7 @@ class EpaClassifier:
         #
         #############################################
         if ptp:
-            full_aln = SeqGroup(self.epa_alignment)
-            species_list = epa_2_ptp(epa_jp = jp, ref_jp = self.refjson, full_alignment = full_aln, min_lw = 0.5, debug = self.cfg.debug)
-            
-            self.cfg.log.debug("Species clusters:")
- 
-            if fout:
-                fo2 = open(fout+".species", "w")
-            else:
-                fo2 = None
-
-            for sp_cluster in species_list:
-                translated_taxa = []
-                for taxon in sp_cluster:
-                    origin_taxon_name = EpacConfig.strip_query_prefix(taxon)
-                    translated_taxa.append(origin_taxon_name)
-                s = ",".join(translated_taxa)
-                if fo2:
-                    fo2.write(s + "\n")
-                self.cfg.log.debug(s)
-
-            if fo2:
-                fo2.close()
-        #############################################
+            self.run_ptp(jp)
         
     def novelty_check(self, place_edge, ranks, lws):
         """If the taxonomic assignment is not assigned to the genus level, 
@@ -307,17 +315,16 @@ class EpaClassifier:
         """
         
         lowrank = 0
-        for i in range(len(ranks)):
-            if i < 6:
-                """above genus level"""
-                rk = ranks[i]
-                lw = lws[i]
-                if rk == "-":
-                    break
-                else:
-                    lowrank = lowrank + 1
-                    if lw >=0 and lw < self.cfg.min_lhw:
-                        return True
+        for i in max(range(len(ranks)), 6):
+            """above genus level"""
+            rk = ranks[i]
+            lw = lws[i]
+            if rk == "-":
+                break
+            else:
+                lowrank = lowrank + 1
+                if lw >= 0 and lw < self.cfg.min_lhw:
+                    return True
         
         if lowrank >= 5 and lowrank < len(ranks) and not ranks[lowrank] == "-":
             return False

@@ -88,8 +88,8 @@ class RaxmlWrapper:
             raxml_params += ["-f", "y"]
             result_file_stem = "portableTree"
         else:
-            print "ERROR: Invalid RAxML-EPA running mode: %s" % mode
-            sys.exit()
+            errmsg = "ERROR: Invalid RAxML-EPA running mode: %s" % mode
+            self.cfg.exit_fatal_error(errmsg)
             
         raxml_params += ["--epa-accumulated-threshold", str(lhw_acc_threshold)]
 
@@ -102,8 +102,8 @@ class RaxmlWrapper:
                 if self.cfg.raxml_model.startswith("GTRCAT") and not self.cfg.compress_patterns:
                     raxml_params +=  ["-H"]
             else:
-                print "WARNING: Binary model file not found: %s" % optmod_fname
-                print "WARNING: Model parameters will be estimated by RAxML"
+                self.cfg.log.info("WARNING: Binary model file not found: %s" % optmod_fname)
+                self.cfg.log.info("WARNING: Model parameters will be estimated by RAxML")
                 
         self.run(job_name, raxml_params, silent)
         
@@ -127,32 +127,37 @@ class RaxmlWrapper:
                 failed = True
             
         if failed:
-            print "RAxML EPA run failed, please examine the log for details:\n %s" \
+            errmsg = "RAxML EPA run failed, please examine the log for details:\n %s" \
                     % self.make_raxml_fname("output", job_name)
-            sys.exit()
+            self.cfg.exit_fatal_error(errmsg)
         else:        
             return jp
 
+    def get_std_raxml_options(self, job_name):
+        params = ["-m", self.cfg.raxml_model, "-n", job_name]
+        
+        if self.cfg.save_memory:
+            params += ["-U"]
+
+        if not self.cfg.use_bfgs:
+            params += ["--no-bfgs"]
+            
+        if self.cfg.verbose:
+            params += ["--verbose"]
+        
+        return params
+    
     def run(self, job_name, params, silent=True, chkpoint_fname=None):
         if self.cfg.raxml_model == "AUTO":
-            print "ERROR: you should have called EpacConfig.resolve_auto_settings() in your script!\n"
-            sys.exit()
+            errmsg = "ERROR: you should have called EpacConfig.resolve_auto_settings() in your script!\n"
+            self.cfg.exit_fatal_error(errmsg)
 
         self.cleanup(job_name)
         
         lparams  = []
         lparams += params
-        lparams += ["-m", self.cfg.raxml_model, "-n", job_name]
+        lparams += self.get_std_raxml_options(job_name)
 
-        if not self.cfg.use_bfgs:
-            lparams += ["--no-bfgs"]
-            
-        if self.cfg.save_memory:
-            lparams += ["-U"]
-        
-        if self.cfg.verbose:
-            lparams += ["--verbose"]
-        
         if not "-p" in lparams:
             seed = random.randint(1, 32000)
             lparams += ["-p", str(seed)]

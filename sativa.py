@@ -276,6 +276,36 @@ class LeaveOneTest:
                 for line in stats:
                     fo_stat.write(line + "\n")
     
+    def write_mislabels_header(self, fo, final, fields):
+        header = ";" + "\t".join(fields) + "\n"
+
+        # write to file    
+        if final:
+            for line in DISCLAIMER.split("\n"):
+              fo.write(";%s\n" % line)
+            fo.write(";\n")
+        fo.write(header)
+        
+        # print to console  
+        if final and self.cfg.verbose  and len(self.rank_mislabels) > 0:
+            print DISCLAIMER, "\n"
+            print "Mislabeled sequences:\n"
+            print header 
+
+    def write_rank_mislabels(self):
+        if not self.cfg.ranktest:
+            return
+            
+        with open(self.misrank_fname, "w") as fo_all:
+            fields = ["RankID", "MislabeledLevel", "OriginalLabel", "ProposedLabel", "Confidence", "OriginalTaxonomyPath", 
+                      "ProposedTaxonomyPath", "PerRankConfidence"]
+            self.write_mislabels_header(fo_all, final, fields)
+            for mis_rec in self.rank_mislabels:
+                output = self.mis_rec_to_string(mis_rec) + "\n"
+                fo_all.write(output)
+                if self.cfg.verbose:
+                    print(output) 
+
     def write_mislabels(self, final=True):
         if final:
             out_fname = self.mis_fname
@@ -283,54 +313,25 @@ class LeaveOneTest:
             out_fname = self.premis_fname
         
         with open(out_fname, "w") as fo_all:
-            if final:
-                for line in DISCLAIMER.split("\n"):
-                  fo_all.write(";%s\n" % line)
-                fo_all.write(";\n")  
-            fields = ["SeqID", "MislabeledLevel", "OriginalLabel", "ProposedLabel", "Confidence", "OriginalTaxonomyPath", "ProposedTaxonomyPath", "PerRankConfidence"]
+            fields = ["SeqID", "MislabeledLevel", "OriginalLabel", "ProposedLabel", "Confidence", "OriginalTaxonomyPath", 
+                      "ProposedTaxonomyPath", "PerRankConfidence"]
             if self.cfg.ranktest:
                 fields += ["HigherRankMisplacedConfidence"]
-            header = ";" + "\t".join(fields) + "\n"
-            fo_all.write(header)
-            if self.cfg.verbose and len(self.mislabels) > 0 and final:
-                print DISCLAIMER, "\n"
-                print "Mislabeled sequences:\n"
-                print header 
+            self.write_mislabels_header(fo_all, final, fields)
             for mis_rec in self.mislabels:
                 output = self.mis_rec_to_string(mis_rec)  + "\n"
                 fo_all.write(output)
                 if self.cfg.verbose and final:
                     print(output) 
                     
-        if not final:
-            return
-
-        if self.cfg.ranktest:
-            with open(self.misrank_fname, "w") as fo_all:
-                fields = ["RankID", "MislabeledLevel", "OriginalLabel", "ProposedLabel", "Confidence", "OriginalTaxonomyPath", "ProposedTaxonomyPath", "PerRankConfidence"]
-                header = ";" + "\t".join(fields)  + "\n"
-                fo_all.write(header)
-                if self.cfg.verbose  and len(self.rank_mislabels) > 0:
-                    print "\nMislabeled higher ranks:\n"
-                    print header 
-                for mis_rec in self.rank_mislabels:
-                    output = self.mis_rec_to_string(mis_rec) + "\n"
-                    fo_all.write(output)
-                    if self.cfg.verbose:
-                        print(output) 
-                        
-        self.write_stats()
+        if final:
+            self.write_rank_mislabels()
+            self.write_stats()
    
-    def run_leave_subtree_out_test(self):
-        job_name = self.cfg.subst_name("l1out_rank_%NAME%")
-#        if self.jplace_fname:
-#            jp = EpaJsonParser(self.jplace_fname)
-#        else:        
-
-        #create file with subtrees
+    def get_parent_tip_ranks(self, tax_tree):
         rank_tips = {}
         rank_parent = {}
-        for node in self.tax_tree.traverse("postorder"):
+        for node in tax_tree.traverse("postorder"):
             if node.is_leaf() or node.is_root():
                 continue
             tax_path = node.name
@@ -352,9 +353,19 @@ class LeaveOneTest:
 #            print rank_lvl, "\t", tax_path, "\t", rank_seqs, "\n"
             rank_tips[tax_path] = node.get_leaf_names()
             rank_parent[tax_path] = parent_ranks
-                
+            
+        return rank_parent, rank_tips
+
+    def run_leave_subtree_out_test(self):
+        job_name = self.cfg.subst_name("l1out_rank_%NAME%")
+#        if self.jplace_fname:
+#            jp = EpaJsonParser(self.jplace_fname)
+#        else:        
+
+        #create file with subtrees
+        rank_parent, rank_tips = get_parent_tip_ranks(self.tax_tree)
+
         subtree_list = rank_tips.items()
-        
         if len(subtree_list) == 0:
             return 0
             
@@ -438,41 +449,37 @@ class LeaveOneTest:
             
         return seq_count    
         
-    def run_final_epa_test(self):
-        self.reftree_outgroup = self.refjson.get_outgroup()
-
-        tmp_reftree = self.reftree.copy(method="newick") 
-        name2refnode = {}
-        for leaf in tmp_reftree.iter_leaves():
-            name2refnode[leaf.name] = leaf        
-
-        tmp_taxtree = self.tax_tree.copy(method="newick") 
-        name2taxnode = {}
-        for leaf in tmp_taxtree.iter_leaves():
-            name2taxnode[leaf.name] = leaf        
+    def prune_mislabels_from_tree(self, src_tree, tree_name):
+        pruned_tree = src_tree.copy(method="newick") 
+        name2node = {}
+        for leaf in pruned_tree.iter_leaves():
+            name2node[leaf.name] = leaf        
 
         for mis_rec in self.mislabels:
             rname = mis_rec['name']
 #            rname = EpacConfig.REF_SEQ_PREFIX + name
 
-            if rname in name2refnode:
-                name2refnode[rname].delete()
+            if rname in name2node:
+                name2node[rname].delete()
             else:
-                print "Node not found in the reference tree: %s" % rname
+                config.log.debug("Node not found in the %s tree: %s" % (tree_name, rname))
+        
+        return pruned_tree
+    
+    def run_final_epa_test(self):
+        self.reftree_outgroup = self.refjson.get_outgroup()
 
-            if rname in name2taxnode:
-                name2taxnode[rname].delete()
-            else:
-                print "Node not found in the taxonomic tree: %s" % rname
+        pruned_reftree = self.prune_mislabels_from_tree(self.reftree, "reference")
+        pruned_taxtree = self.prune_mislabels_from_tree(self.reftree, "taxonomic")
 
         # remove unifurcation at the root
-        if len(tmp_reftree.children) == 1:
-            tmp_reftree = tmp_reftree.children[0]
+        if len(pruned_reftree.children) == 1:
+            pruned_reftree = pruned_reftree.children[0]
             
         self.mislabels = []
 
         th = TaxTreeHelper(self.cfg, self.origin_taxonomy)
-        th.set_mf_rooted_tree(tmp_taxtree)
+        th.set_mf_rooted_tree(pruned_taxtree)
          
         reftree_epalbl_str = None    
         if self.cfg.final_jplace_fname:
@@ -491,7 +498,7 @@ class LeaveOneTest:
                 
             config.log.debug("Loaded %d final epa placements from %s\n", len(placements), jplace_fmask)
         else:
-            epa_result = self.run_epa_once(tmp_reftree)
+            epa_result = self.run_epa_once(pruned_reftree)
             reftree_epalbl_str = epa_result.get_std_newick_tree()        
             placements = epa_result.get_placement()
         
@@ -685,7 +692,7 @@ def check_args(args, parser):
          args.min_lhw = 0.0
     
     if args.conf_cutoff < 0 or args.conf_cutoff > 1.0:
-         args.min_lhw = 0.0
+         args.conf_cutoff = 0.0
 
     sativa_home = os.path.dirname(os.path.abspath(__file__))
     if not args.config_fname:

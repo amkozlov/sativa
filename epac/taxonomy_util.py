@@ -386,9 +386,8 @@ class Taxonomy:
         old_fixed = {}
         old_ranks = {}
         for sid, ranks in self.seq_ranks_map.iteritems():
-            for i in range(1, len(ranks)):
-                if ranks[i] == Taxonomy.EMPTY_RANK:
-                    break                
+            i = 1
+            while i < len(ranks) and ranks[i] != Taxonomy.EMPTY_RANK:
                 parent = ranks[i-1]
                 if not ranks[i] in parent_map:
                     parent_map[ranks[i]] = sid
@@ -412,6 +411,7 @@ class Taxonomy:
                         else:
                             dup_rec = (old_sid, self.lineage_str(old_sid), sid, self.lineage_str(sid))
                         dups.append(dup_rec)
+                i += 1
                         
         if autofix:
             for sid, orig_name in old_fixed.iteritems():
@@ -421,17 +421,6 @@ class Taxonomy:
         return dups
         
     def check_for_disbalance(self, autofix=False):
-        # the next block finds "orphan" ranks - could be used to decide which ranks to drop (not used now)
-        if 0:
-            child_map = {}
-            for sid, ranks in self.seq_ranks_map.iteritems():
-                for i in range(1, len(ranks)):
-                    parent = "%d_%s" % (i-1, ranks[i-1])
-                    if parent not in child_map:
-                        child_map[parent] = set([ranks[i]])
-                    else:
-                        child_map[parent].add(ranks[i])
-        
         errs = []
         for sid, ranks in self.seq_ranks_map.iteritems():
             if len(ranks) > 7:
@@ -450,14 +439,10 @@ class Taxonomy:
                         else:
                             restq += [i]
 
-                    to_remove = dropq + restq + keepq
-                    to_remove = to_remove[:len(ranks)-7]
+                    to_keep = keepq + restq + dropq
+                    to_keep = sorted(to_keep[:-7])
                     
-                    new_ranks = []
-                    for i in range(len(ranks)):
-                        if i not in to_remove:
-                            new_ranks += [ranks[i]]
-                            
+                    new_ranks = [ranks[i] for i in to_keep]
                     self.seq_ranks_map[sid] = new_ranks
                     
                     err_rec = (sid, orig_name, self.lineage_str(sid))
