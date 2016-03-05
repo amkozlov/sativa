@@ -80,7 +80,9 @@ Citation
 --------
 
 Alexey M. Kozlov, Jiajie Zhang, Pelin Yilmaz, Frank Oliver Glöckner and Alexandros Stamatakis.
-**Phylogeny-aware Identification and Correction of Taxonomically Mislabeled Sequences.** *In preparation.*
+**Phylogeny-aware Identification and Correction of Taxonomically Mislabeled Sequences.**
+*Submitted.* [bioRxiv preprint](http://biorxiv.org/content/early/2016/03/04/042200)
+
 
 References
 ----------
