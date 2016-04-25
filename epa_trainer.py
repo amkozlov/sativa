@@ -244,8 +244,29 @@ class RefTreeBuilder:
                 self.cfg.log.debug("Guessing input format: not " + fmt)
         if self.input_seqs == None:
             self.cfg.exit_user_error("Invalid input file format: %s\nThe supported input formats are fasta and phylip" % in_file)
+
+    def merge_synonyms(self):
+        if not self.cfg.synonym_fname:
+            return
+        
+        self.synonym_map = {}
+        preferred_name = None    
+        with open(self.cfg.synonym_fname) as sf:
+            for line in sf:
+                sname = line.strip()
+                if len(sname) > 0:
+                    if preferred_name:
+                       self.synonym_map[sname] = preferred_name
+                       self.cfg.log.debug("NOTE: %s is a non-preferred synonym for %s" % (sname, preferred_name))
+                    else:
+                        preferred_name = sname
+                else:
+                    preferred_name = None
+
+        self.taxonomy.subst_synonyms(self.synonym_map)           
             
     def validate_taxonomy(self):
+        self.merge_synonyms()
         self.input_validator = InputValidator(self.cfg, self.taxonomy, self.input_seqs)
         self.input_validator.validate()
         
@@ -623,6 +644,9 @@ information needed for taxonomic placement of query sequences.""")
 Run name of the previous (terminated) job must be specified via -n option.""")
     parser.add_argument("-v", dest="verbose", action="store_true",
             help="""Print additional info messages to the console.""")
+    parser.add_argument("-Y", dest="synonym_fname", default=None,
+            help="""File listing synonymous rank names, which will be considered equivalent.
+            Please enter one name per line; separate groups with an empty line.""")
     parser.add_argument("-debug", dest="debug", action="store_true",
             help="""Debug mode, intermediate files will not be cleaned up.""")
     parser.add_argument("-no-hmmer", dest="no_hmmer", action="store_true",
@@ -659,6 +683,10 @@ def check_args(args):
     #check if alignment file exists
     if not os.path.isfile(args.align_fname):
         print "ERROR: Alignment file not found: %s" % args.align_fname
+        sys.exit()
+        
+    if args.synonym_fname and not os.path.isfile(args.synonym_fname):
+        print("Synonym list file file does not exists: %s" % args.synonym_fname)
         sys.exit()
         
     if not args.output_name:

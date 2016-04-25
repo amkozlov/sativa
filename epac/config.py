@@ -298,6 +298,7 @@ class EpacTrainerConfig(EpacConfig):
             self.mfresolv_method = args.mfresolv_method
             self.taxcode_name = args.taxcode_name
             self.rep_num = args.rep_num
+            self.synonym_fname = args.synonym_fname
         
     def set_defaults(self):
         EpacConfig.set_defaults(self)

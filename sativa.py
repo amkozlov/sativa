@@ -637,7 +637,10 @@ Run name of the previous (terminated) job must be specified via -n option.""")
             fast        use RF distance as search convergence criterion (RAxML -D option)
             ultrafast   optimize model+branch lengths only (RAxML -f e option)""")
     parser.add_argument("-S", dest="save_memory", action="store_true",
-            help="""Enable RAxML memory saving (useful for large and gappy alignments)""")
+            help="""Enable RAxML memory saving (useful for large and gappy alignments).""")
+    parser.add_argument("-Y", dest="synonym_fname", default=None,
+            help="""File listing synonymous rank names, which will be considered equivalent.
+            Please enter one name per line; separate groups with an empty line.""")
     parser.add_argument("-debug", dest="debug", action="store_true",
             help="""Debug mode, intermediate files will not be cleaned up.""")
     parser.add_argument("-ranktest", dest="ranktest", action="store_true",
@@ -686,6 +689,10 @@ def check_args(args, parser):
     
     if args.jplace_fname and not (os.path.isfile(args.jplace_fname) or os.path.isdir(args.jplace_fname)):
         print("EPA placement file does not exists: %s" % args.jplace_fname)
+        sys.exit()
+
+    if args.synonym_fname and not os.path.isfile(args.synonym_fname):
+        print("Synonym list file file does not exists: %s" % args.synonym_fname)
         sys.exit()
 
     if args.min_lhw < 0 or args.min_lhw > 1.0:

@@ -126,6 +126,17 @@ class TaxonomyTests(unittest.TestCase):
         for sid in merge_sids:
             self.assertEqual(tax.seq_rank_id(sid), new_rank_id)
             
+    def test_subst_ranks(self):
+        testfile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "testfiles")
+        tax_fname = os.path.join(testfile_dir, "test.tax")
+        tax = Taxonomy("", tax_fname)
+        old_ranks = tax.get_seq_ranks("WgeSangu")
+        self.assertEqual(old_ranks[-2], 'Sneathia')
+        syn_map = {'Sneathia' : 'Sebaldella'}
+        tax.subst_synonyms(syn_map)
+        new_ranks = tax.get_seq_ranks("WgeSangu")
+        self.assertEqual(old_ranks[-2], 'Sebaldella')
+            
     def test_taxtree_builder(self):
         cfg = EpacConfig()
         testfile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "testfiles")

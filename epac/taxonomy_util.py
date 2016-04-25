@@ -313,6 +313,21 @@ class Taxonomy:
             self.seq_ranks_map[sid] = new_rank
             
         return new_rank_id
+        
+    def subst_synonyms(self, syn_map):
+        for sid, ranks in self.seq_ranks_map.iteritems():
+          old_rank_id = Taxonomy.get_rank_uid(ranks)
+          changed = False
+          for i in range(0, len(ranks)):
+            if ranks[i] in syn_map:
+                ranks[i] = syn_map[ranks[i]]
+                changed = True
+                
+          if changed:
+              new_rank_id = Taxonomy.get_rank_uid(ranks)
+#              print old_rank_id, new_rank_id
+              del self.rank_seqs_map[old_rank_id]
+              self.rank_seqs_map[new_rank_id] = self.rank_seqs_map.get(new_rank_id, []) + [sid]
 
     def load_taxonomy(self, tax_fname):
         with open(tax_fname) as fin:

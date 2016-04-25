@@ -43,6 +43,7 @@ class ConfigTests(unittest.TestCase):
         ns.mfresolv_method = None
         ns.taxcode_name = None
         ns.rep_num = None
+        ns.synonym_fname = None
         return ns
         
     def get_classifier_namespace(self):

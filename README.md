@@ -49,10 +49,22 @@ Sample command line to run SATIVA with 2 threads:
 Output is a text file which contains a list of identified mislabels, along with the corresponding 
 confidence scores and proposed taxonomic corrections.
 
-**NOTE**: If you omit the `-T` parameter, SATIVA will start one thread per each logical CPU
+**Parallelization note**: If you omit the `-T` parameter, SATIVA will start one thread per each logical CPU
 in your system. Although this is usually what you want, it might lead to a *major* slowdown
 if some of the CPUs are already reserved by other running programs (e.g., if you run SATIVA on 
 a shared server). If you encounter this problem, please try reducing the number of threads with `-T`!
+
+**Handling non-preferred synonyms**: You can use `-Y` parameter to specify a file with the list of
+equivalent name groups (synonyms), e.g.:
+
+```sh
+   cd example
+   ../sativa.py -s test.phy -t test.tax -x BAC -T 2 -n syntest -Y synonym.txt
+```
+
+First name of each group will be considered the preferred synonym (primary name), and 
+will be used in place of all other (synonymous) names in the group. 
+An example synonym definition can be found in `synonym.txt` file.
 
 For additional options, please refer to the online help:
 
