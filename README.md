@@ -91,9 +91,9 @@ https://groups.google.com/forum/?hl=en#!forum/raxml
 Citation
 --------
 
-Alexey M. Kozlov, Jiajie Zhang, Pelin Yilmaz, Frank Oliver Glöckner and Alexandros Stamatakis.
+Alexey M. Kozlov, Jiajie Zhang, Pelin Yilmaz, Frank Oliver Glöckner and Alexandros Stamatakis (2016)
 **Phylogeny-aware Identification and Correction of Taxonomically Mislabeled Sequences.**
-*Submitted.* [bioRxiv preprint](http://biorxiv.org/content/early/2016/03/04/042200)
+*Nucleic Acids Research* [open access](https://nar.oxfordjournals.org/content/early/2016/05/09/nar.gkw396.full)
 
 
 References
