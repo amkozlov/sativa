@@ -184,6 +184,21 @@ class RaxmlWrapper:
 
         return ' '.join(call_str)
         
+    def restart_from_checkpoint(self, job_name, params, silent=True):
+        old_chkpoint_fname = self.checkpoint_fname(job_name)
+        if not os.path.isfile(old_chkpoint_fname):
+            old_chkpoint_fname = self.bkup_checkpoint_fname(job_name)
+            if not os.path.isfile(old_chkpoint_fname):
+                old_chkpoint_fname = None
+
+        old_info = self.info_fname(job_name)
+        FileUtils.remove_if_exists(old_info)
+        if old_chkpoint_fname:
+            chkpoint_fname = self.checkpoint_fname("last_chkpoint")
+            shutil.move(old_chkpoint_fname, chkpoint_fname)
+            
+        return self.run(job_name, params, silent, chkpoint_fname)
+        
     def run_multiple(self, job_name, params, repnum, silent=True):    
         best_lh = float("-inf")
         best_jobname = None

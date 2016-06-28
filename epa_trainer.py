@@ -377,10 +377,17 @@ class RefTreeBuilder:
             raxml_params += ["-D"]
         elif self.cfg.mfresolv_method  == "ultrafast":
             raxml_params += ["-f", "e"]
-        if self.cfg.restart and self.raxml_wrapper.result_exists(self.mfresolv_job_name):
-            self.invocation_raxml_multif = self.raxml_wrapper.get_invocation_str(self.mfresolv_job_name)
-            self.cfg.log.debug("\nUsing existing ML tree found in: %s\n", self.raxml_wrapper.result_fname(self.mfresolv_job_name))
+        if self.cfg.restart:
+            # resuming SATIVA execution
+            if self.raxml_wrapper.besttree_exists(self.mfresolv_job_name):
+                # if we already have a resolved tree, just use it and proceed to the next step
+                self.invocation_raxml_multif = self.raxml_wrapper.get_invocation_str(self.mfresolv_job_name)
+                self.cfg.log.debug("\nUsing existing ML tree found in: %s\n", self.raxml_wrapper.result_fname(self.mfresolv_job_name))
+            else:
+                # if raxml was interrupted mid-execution, resume from the last checkpoint
+                self.invocation_raxml_multif = self.raxml_wrapper.restart_from_checkpoint(self.mfresolv_job_name, raxml_params)
         else:
+            # start raxml anew
             self.invocation_raxml_multif = self.raxml_wrapper.run(self.mfresolv_job_name, raxml_params)
 #            self.invocation_raxml_multif = self.raxml_wrapper.run_multiple(self.mfresolv_job_name, raxml_params, self.cfg.rep_num)
             if self.cfg.mfresolv_method  == "ultrafast":
