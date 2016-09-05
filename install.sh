@@ -25,6 +25,15 @@ case `uname` in
              if [ "$CLANG_VERSION" \> "3.3" ]; then
                 export USE_AVX2=yes
              fi
+        elif [[ $CLANG_STR =~ (clang-([0-9]*\.[0-9]*\.[0-9]*)\)) ]]; then
+             CLANG_VERSION=${BASH_REMATCH[2]}
+             COMPILER_NAME="clang $CLANG_VERSION"
+             if [ "$CLANG_VERSION" \> "499" ]; then
+                export USE_AVX=yes
+             fi
+             if [ "$CLANG_VERSION" \> "500" ]; then
+                export USE_AVX2=yes
+             fi
         fi
         ;;
     Linux)
@@ -47,7 +56,7 @@ if [ "$1" == "--no-avx" ]; then
 fi
 
 if [ -z $NO_AVX ] && [ $USE_AVX != "yes" ] && cpu_has_feature avx; then
-   echo "Your CPU provides AVX instuctions, but you default compiler ($COMPILER_NAME) is too old to support them."
+   echo "Your CPU provides AVX instructions, but you default compiler ($COMPILER_NAME) is too old to support them."
    echo "Please consider using a more recent compiler (GCC 4.6+ or clang 3.3+) for optimal performance."
    echo "If you want to use a (slower) SSE3 RAxML version instead, please run this script with --no-avx option."
    exit
@@ -57,8 +66,8 @@ echo "Your compiler: $COMPILER_NAME"
 echo "Building AVX: $USE_AVX"
 echo "Building AVX2: $USE_AVX2"
 
-cd raxml
-make
-cd ..
-mkdir -p tmp
+SATIVA_ROOT=`dirname $0`
+
+make -C $SATIVA_ROOT/raxml
+mkdir -p $SATIVA_ROOT/tmp
 echo -e "\nDone!"
