@@ -701,7 +701,7 @@ def check_args(args, parser):
     if args.conf_cutoff < 0 or args.conf_cutoff > 1.0:
          args.conf_cutoff = 0.0
 
-    sativa_home = os.path.dirname(os.path.abspath(__file__))
+    sativa_home = os.path.dirname(os.path.realpath(__file__))
     if not args.config_fname:
         args.config_fname = os.path.join(sativa_home, "sativa.cfg")
     if not args.temp_dir:
