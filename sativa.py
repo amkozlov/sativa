@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 import sys
 import os
@@ -31,8 +31,8 @@ class LeaveOneTest:
         self.stats_fname = self.cfg.out_fname("%NAME%.stats")
         
         if os.path.isfile(self.mis_fname):
-            print "\nERROR: Output file already exists: %s" % self.mis_fname
-            print "Please specify a different job name using -n or remove old output files."
+            print("\nERROR: Output file already exists: %s" % self.mis_fname)
+            print("Please specify a different job name using -n or remove old output files.")
             self.cfg.exit_user_error()
 
         self.tmp_refaln = config.tmp_fname("%NAME%.refaln")
@@ -52,7 +52,7 @@ class LeaveOneTest:
             fname_suffix = "final" if final else "l1out"
             bid_fname = self.cfg.tmp_fname("%NAME%_" + "bid_tax_map_%s.txt" % fname_suffix)
             with open(bid_fname, "w") as outf:
-              for bid, bid_rec in bid_tax_map.iteritems():
+              for bid, bid_rec in bid_tax_map.items():
                 outf.write("%s\t%s\t%d\t%f\n" % (bid, bid_rec[0], bid_rec[1], bid_rec[2]));    
 
     def write_assignments(self, assign_map, final):
@@ -60,7 +60,7 @@ class LeaveOneTest:
             fname_suffix = "final" if final else "l1out"
             assign_fname = self.cfg.tmp_fname("%NAME%_" + "taxassign_%s.txt" % fname_suffix)
             with open(assign_fname, "w") as outf:
-                for seq_name in assign_map.iterkeys():
+                for seq_name in assign_map.keys():
                     ranks, lws = assign_map[seq_name]
                     outf.write("%s\t%s\t%s\n" % (seq_name, ";".join(ranks), ";".join(["%.3f" % l for l in lws])))
 
@@ -127,7 +127,7 @@ class LeaveOneTest:
         if len(edges) > 0:
             return self.classify_helper.classify_seq(edges)
         else:
-            print "ERROR: no placements! something is definitely wrong!"
+            print("ERROR: no placements! something is definitely wrong!")
 
     def check_seq_tax_labels(self, seq_name, orig_ranks, ranks, lws):
         mis_rec = None
@@ -288,9 +288,9 @@ class LeaveOneTest:
         
         # print to console  
         if final and self.cfg.verbose  and len(self.rank_mislabels) > 0:
-            print DISCLAIMER, "\n"
-            print "Mislabeled sequences:\n"
-            print header 
+            print(DISCLAIMER, "\n")
+            print("Mislabeled sequences:\n")
+            print(header) 
 
     def write_rank_mislabels(self):
         if not self.cfg.ranktest:
@@ -365,7 +365,7 @@ class LeaveOneTest:
         #create file with subtrees
         rank_parent, rank_tips = get_parent_tip_ranks(self.tax_tree)
 
-        subtree_list = rank_tips.items()
+        subtree_list = list(rank_tips.items())
         if len(subtree_list) == 0:
             return 0
             
@@ -670,29 +670,29 @@ def check_args(args, parser):
         sys.exit()
     
     if not os.path.exists(args.output_dir):
-        print("Output directory does not exists: %s" % args.output_dir)
+        print(("Output directory does not exists: %s" % args.output_dir))
         sys.exit()
 
     #check if taxonomy file exists
     if args.taxonomy_fname and not os.path.isfile(args.taxonomy_fname):
-        print "ERROR: Taxonomy file not found: %s" % args.taxonomy_fname
+        print("ERROR: Taxonomy file not found: %s" % args.taxonomy_fname)
         sys.exit()
 
     #check if alignment file exists
     if args.align_fname and not os.path.isfile(args.align_fname):
-        print "ERROR: Alignment file not found: %s" % args.align_fname
+        print("ERROR: Alignment file not found: %s" % args.align_fname)
         sys.exit()
 
     if args.ref_fname and not os.path.isfile(args.ref_fname):
-        print("Input reference json file does not exists: %s" % args.ref_fname)
+        print(("Input reference json file does not exists: %s" % args.ref_fname))
         sys.exit()
     
     if args.jplace_fname and not (os.path.isfile(args.jplace_fname) or os.path.isdir(args.jplace_fname)):
-        print("EPA placement file does not exists: %s" % args.jplace_fname)
+        print(("EPA placement file does not exists: %s" % args.jplace_fname))
         sys.exit()
 
     if args.synonym_fname and not os.path.isfile(args.synonym_fname):
-        print("Synonym list file file does not exists: %s" % args.synonym_fname)
+        print(("Synonym list file file does not exists: %s" % args.synonym_fname))
         sys.exit()
 
     if args.min_lhw < 0 or args.min_lhw > 1.0:
@@ -714,7 +714,7 @@ def check_args(args, parser):
         args.output_name = os.path.splitext(base_fname)[0]
         
 def print_run_info(config):
-    print ""
+    print("")
     config.print_version("SATIVA")
     
     call_str = " ".join(sys.argv)

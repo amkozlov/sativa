@@ -39,5 +39,5 @@ __VERSION__="ete2-2.2rev1026"
 # 
 # #END_LICENSE#############################################################
 
-from tree import *
-from seqgroup import *
+from .tree import *
+from .seqgroup import *

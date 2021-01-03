@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import sys
 import unittest
@@ -50,7 +50,7 @@ class TaxTreeHelperTests(unittest.TestCase):
         self.taxtree_helper.set_bf_unrooted_tree(bfu_tree)
         bid_tax_map = self.taxtree_helper.get_bid_taxonomy_map()
         self.assertEqual(len(bid_tax_map), 2 * len(bfu_tree) - 3)
-        for bid in self.expected_map.iterkeys():
+        for bid in self.expected_map.keys():
             e_rec = self.expected_map[bid]
             rec = bid_tax_map[bid]
             self.assertEqual(e_rec[0], rec[0])

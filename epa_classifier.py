@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 try:
     import sys
     import os
@@ -15,9 +15,9 @@ try:
     from epac.msa import muscle, hmmer
     from epac.taxonomy_util import Taxonomy
     from epac.classify_util import TaxClassifyHelper,TaxTreeHelper
-except ImportError, e:
+except ImportError as e:
     print("Some packages are missing, please re-downloand EPA-classifier")
-    print e
+    print(e)
     sys.exit()
 
 class EpaClassifier:
@@ -315,7 +315,7 @@ class EpaClassifier:
         """
         
         lowrank = 0
-        for i in max(range(len(ranks)), 6):
+        for i in max(list(range(len(ranks))), 6):
             """above genus level"""
             rk = ranks[i]
             lw = lws[i]
@@ -437,7 +437,7 @@ def check_args(args):
         sys.exit()
     
     if not os.path.exists(args.ref_fname):
-        print("Input reference json file does not exists: %s" % args.ref_fname)
+        print(("Input reference json file does not exists: %s" % args.ref_fname))
         print_options()
         sys.exit()
     
@@ -445,13 +445,13 @@ def check_args(args):
         if os.path.exists(args.jplace_fname):
             input_fname = args.jplace_fname 
         else: 
-            print("Portable tree file does not exist: %s" % args.jplace_fname)
+            print(("Portable tree file does not exist: %s" % args.jplace_fname))
             sys.exit()
     elif args.query_fname:
         if os.path.exists(args.query_fname):
             input_fname = args.query_fname 
         else:
-            print("Input query file does not exists: %s" % args.query_fname)
+            print(("Input query file does not exists: %s" % args.query_fname))
             sys.exit()
     else:
         print("Either query file or .jplace file must be specified!\n")
@@ -476,7 +476,7 @@ def check_args(args):
 
 
 def print_run_info(config, args):
-    print ""
+    print("")
     config.print_version("SATIVA-classifier")
 
     config.log.info("\nEPA-classifier running with the following parameters:")
@@ -504,9 +504,9 @@ if __name__ == "__main__":
     if args.ptp:
         try:
             from epac.epa_util import epa_2_ptp
-        except ImportError, e:
+        except ImportError as e:
             print("PTP module (or its dependecies) not found, please see detail below:")
-            print e
+            print(e)
             sys.exit()
     
     check_args(args)

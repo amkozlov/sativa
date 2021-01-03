@@ -1,6 +1,6 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 import math
-from ete2 import Tree
+from .ete2 import Tree
 
 class erlang:
     def __init__(self):
@@ -26,7 +26,7 @@ class tree_param:
         #pruning the input tree such that each species only appear once
         species = set()
         keepseqs = []
-        for name in self.taxonomy.keys():
+        for name in list(self.taxonomy.keys()):
             ranks = self.taxonomy[name]
             sp = ranks[-1]
             if sp == "-":
@@ -58,7 +58,7 @@ class tree_param:
               name2node[node.name] = node
 
         #pruning the input tree such that each species only appear once
-        for name in self.taxonomy.keys():
+        for name in list(self.taxonomy.keys()):
             ranks = self.taxonomy[name]
             sp = ranks[-1]
             if sp != "-":
@@ -96,4 +96,4 @@ class tree_param:
 if __name__ == "__main__":
     print("This is erlang.py main")
     el = erlang()
-    print el.one_tail_test(rate = 17, k = 1, x = 0.221977)
+    print(el.one_tail_test(rate = 17, k = 1, x = 0.221977))

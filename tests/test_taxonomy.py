@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import sys
 import unittest
@@ -74,7 +74,7 @@ class TaxonomyTests(unittest.TestCase):
         self.tax_fname = os.path.join(test_dir, "test.tax")
         self.PREFIXED_TAX_DICT = {}
         with open(self.tax_fname, "w") as outf:
-            for sid, ranks in self.TAX_DICT.iteritems():
+            for sid, ranks in self.TAX_DICT.items():
                 outf.write("%s\t%s\n" % (sid, ";".join(ranks)))
                 self.PREFIXED_TAX_DICT[EpacConfig.REF_SEQ_PREFIX+sid] = ranks
         self.taxonomy = Taxonomy("", self.tax_fname)
@@ -91,7 +91,7 @@ class TaxonomyTests(unittest.TestCase):
         
     def test_rank_uid(self):
         tax = self.taxonomy
-        for sid in tax.get_map().iterkeys():
+        for sid in tax.get_map().keys():
             self.assertEqual(tax.get_seq_ranks(sid), Taxonomy.split_rank_uid(tax.seq_rank_id(sid)))
             
     def test_normalize_seq_ids(self):
@@ -146,7 +146,7 @@ class TaxonomyTests(unittest.TestCase):
         expected_tree = Tree(tree_fname, format=8)
         tb = TaxTreeBuilder(cfg, tax)
         tax_tree, seq_ids = tb.build()
-        self.assertEqual(seq_ids, tax.get_map().keys())
+        self.assertEqual(seq_ids, list(tax.get_map().keys()))
         self.assertEqual(tax_tree.write(format=8), expected_tree.write(format=8))
 
 if __name__ == '__main__':

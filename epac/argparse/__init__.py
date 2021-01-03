@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-from argparse import *
+from .argparse import *

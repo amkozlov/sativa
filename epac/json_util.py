@@ -1,17 +1,21 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 import sys
 import os
 import json
 import operator
 import base64
 from subprocess import call
-from ete2 import Tree, SeqGroup
-from taxonomy_util import TaxCode
+from .ete2 import Tree, SeqGroup
+from .taxonomy_util import TaxCode
 
 class EpaJsonParser:
     """This class parses the RAxML-EPA json output file"""
     def __init__(self, jsonfin):
-        self.jdata = json.load(open(jsonfin))
+        f=open(jsonfin) 
+        try:    
+            self.jdata = json.load(f)
+        finally:
+            f.close()
     
     def get_placement(self):
         return self.jdata["placements"]
@@ -34,7 +38,11 @@ class EpaJsonParser:
 class RefJsonChecker:
     def __init__(self, jsonfin= None, jdata = None):
         if jsonfin!=None:
-            self.jdata = json.load(open(jsonfin))
+            f=open(jsonfin)
+            try:
+                 self.jdata = json.load(f)
+            finally:
+                 f.close()
         else:
             self.jdata = jdata
     
@@ -62,29 +70,29 @@ class RefJsonChecker:
         
         self.error = None
 
-        valid = self.check_field("tree", unicode) \
-                and self.check_field("raxmltree", unicode) \
+        valid = self.check_field("tree", str) \
+                and self.check_field("raxmltree", str) \
                 and self.check_field("rate", float) \
                 and self.check_field("node_height", dict) \
                 and self.check_field("origin_taxonomy", dict) \
                 and self.check_field("sequences", list) \
-                and self.check_field("binary_model", unicode) \
+                and self.check_field("binary_model", str) \
                 and self.check_field("hmm_profile", list, fopt=True) 
                 
         # check v1.1 fields, if needed
         if nver >= 1.1:
             valid = valid and \
-                    self.check_field("ratehet_model", unicode)  # ["GTRGAMMA", "GTRCAT"]
+                    self.check_field("ratehet_model", str)  # ["GTRGAMMA", "GTRCAT"]
 
         # check v1.2 fields, if needed
         if nver >= 1.2:
             valid = valid and \
-                    self.check_field("tax_tree", unicode)
+                    self.check_field("tax_tree", str)
 
         # check v1.3 fields, if needed
         if nver >= 1.3:
             valid = valid and \
-                    self.check_field("taxcode", unicode, TaxCode.TAX_CODE_MAP)
+                    self.check_field("taxcode", str, TaxCode.TAX_CODE_MAP)
         
         # check v1.4 fields, if needed
         if nver >= 1.4:
@@ -110,7 +118,9 @@ class RefJsonChecker:
 class RefJsonParser:
     """This class parses the EPA Classifier reference json file"""
     def __init__(self, jsonfin):
-        self.jdata = json.load(open(jsonfin))
+        f=open(jsonfin)
+        self.jdata = json.load(f)
+        f.close()
         self.version = self.jdata["version"]
         self.nversion = float(self.version)
         self.corr_seqid = None
@@ -265,7 +275,7 @@ class RefJsonParser:
         if not self.corr_seqid_reverse:
             if not self.corr_seqid:
                 self.get_corr_seqid_map()
-            self.corr_seqid_reverse = dict((reversed(item) for item in self.corr_seqid.items()))
+            self.corr_seqid_reverse = dict((reversed(item) for item in list(self.corr_seqid.items())))
         return self.corr_seqid_reverse.get(old_seqid, old_seqid)
 
     def get_uncorr_ranks(self, ranks):
@@ -319,7 +329,7 @@ class RefJsonBuilder:
     def set_binary_model(self, model_fname):  
         with open(model_fname, "rb") as fin:
             model_str = base64.b64encode(fin.read())
-        self.jdata["binary_model"] = model_str
+        self.jdata["binary_model"] = model_str.decode()
 
     def set_ratehet_model(self, model):
         self.jdata["ratehet_model"] = model
@@ -344,7 +354,7 @@ class RefJsonBuilder:
 
     def dump(self, out_fname):
         self.jdata.pop("fields", 0)
-        self.jdata["fields"] = self.jdata.keys()
+        self.jdata["fields"] = list(self.jdata.keys())
         with open(out_fname, "w") as fo:
             json.dump(self.jdata, fo, indent=4, sort_keys=True)                
 

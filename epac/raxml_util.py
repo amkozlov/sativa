@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -8,7 +8,7 @@ import datetime
 import random
 import re
 from subprocess import call,STDOUT
-from json_util import EpaJsonParser
+from .json_util import EpaJsonParser
 
 class FileUtils:
 
@@ -259,7 +259,7 @@ class RaxmlWrapper:
         
         raxml_call_cmd = self.cfg.raxml_cmd + params        
         for i in range(len(raxml_call_cmd)):
-            if isinstance(raxml_call_cmd[i], basestring):
+            if isinstance(raxml_call_cmd[i], str):
                 raxml_call_cmd[i] = FileUtils.rebase(raxml_call_cmd[i], self.cfg.epac_home, self.cfg.cluster_epac_home)
         raxml_call_str = ' '.join(raxml_call_cmd)
                 
@@ -275,8 +275,8 @@ class RaxmlWrapper:
         cluster_script_fname = FileUtils.rebase(script_fname, self.cfg.epac_home, self.cfg.cluster_epac_home)
         qsub_call_str += ["qsub", "-sync", "y", cluster_script_fname]
 
-        print raxml_call_str + "\n"
-        print ' '.join(qsub_call_str) + "\n"
+        print(raxml_call_str + "\n")
+        print(' '.join(qsub_call_str) + "\n")
 #        sys.exit()
 
         call(qsub_call_str)

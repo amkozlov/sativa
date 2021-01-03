@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -9,11 +9,11 @@ import time
 import logging
 import random
 import multiprocessing
-import ConfigParser
+import configparser
 
 from epac.version import SATIVA_BUILD,SATIVA_RELEASE_DATE,SATIVA_RAXML_VER
 
-class DefaultedConfigParser(ConfigParser.SafeConfigParser):
+class DefaultedConfigParser(configparser.ConfigParser):
     def get_param(self, section, option, ctype=str, default=None):
         if default is None:
             ret = self.get(section, option)
@@ -188,11 +188,11 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
             else:
                 self.raxml_model = "GTRGAMMA"
         elif self.raxml_model == "GTRCAT" and tree_size < EpacConfig.CAT_LOWER_THRES:
-            print "WARNING: You're using GTRCAT model on a very small dataset (%d taxa), which might lead to unreliable results!" % tree_size
-            print "Please consider switching to GTRGAMMA model.\n"
+            print("WARNING: You're using GTRCAT model on a very small dataset (%d taxa), which might lead to unreliable results!" % tree_size)
+            print("Please consider switching to GTRGAMMA model.\n")
         elif self.raxml_model == "GTRGAMMA" and tree_size > EpacConfig.GAMMA_UPPER_THRES:
-            print "WARNING: You're using GTRGAMMA model on a very large dataset (%d taxa), which might lead to numerical issues!" % tree_size
-            print "In case of problems, please consider switching to GTRCAT model.\n"
+            print("WARNING: You're using GTRGAMMA model on a very large dataset (%d taxa), which might lead to numerical issues!" % tree_size)
+            print("In case of problems, please consider switching to GTRCAT model.\n")
 
         if self.epa_use_heuristic == "AUTO": 
             if tree_size > EpacConfig.EPA_HEUR_THRES:
@@ -338,7 +338,7 @@ class EpacTrainerConfig(EpacConfig):
                     toks = clade.split("|")
                     clade_list += [(int(toks[0]), toks[1])]
         except:
-            print "Invalid format in config parameter: clades_to_include"
+            print("Invalid format in config parameter: clades_to_include")
             sys.exit()
 
         return clade_list

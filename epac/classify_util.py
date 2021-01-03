@@ -1,6 +1,6 @@
-#! /usr/bin/env python
-from taxonomy_util import Taxonomy
-from erlang import erlang
+#! /usr/bin/env python3
+from .taxonomy_util import Taxonomy
+from .erlang import erlang
 import math
 
 class TaxTreeHelper:
@@ -342,12 +342,12 @@ class TaxClassifyHelper:
         # whose "total" weight is greater than a confidence threshold
         max_rw = 0.
         ass_rank_id = None
-        for r in rw_own.iterkeys():
+        for r in rw_own.keys():
             if rw_own[r] > max_rw and rw_total[r] >= minlw:
                 ass_rank_id = r
                 max_rw = rw_own[r] 
         if not ass_rank_id:
-            ass_rank_id = max(rw_total.iterkeys(), key=(lambda key: rw_total[key]))
+            ass_rank_id = max(iter(rw_total.keys()), key=(lambda key: rw_total[key]))
 
         a_ranks = Taxonomy.split_rank_uid(ass_rank_id)
         

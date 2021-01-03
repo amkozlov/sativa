@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import sys
 import unittest
@@ -21,11 +21,11 @@ class JsonTests(unittest.TestCase):
     def test_jplace_read(self):
         jplace_fname = os.path.join(self.testfile_dir, "test.jplace")
         parser = EpaJsonParser(jplace_fname)
-        self.assertEquals(parser.get_raxml_version(), "8.2.3")
+        self.assertEqual(parser.get_raxml_version(), "8.2.3")
         t = Tree(parser.get_tree())
         t_len = len(t)
-        self.assertEquals(t_len, 32)
-        self.assertEquals(len(parser.get_placement()), 6)
+        self.assertEqual(t_len, 32)
+        self.assertEqual(len(parser.get_placement()), 6)
         for p in parser.get_placement():
             self.assertFalse(p["n"][0] in t) 
             self.assertTrue(len(p["p"]) > 0) 
@@ -43,7 +43,7 @@ class JsonTests(unittest.TestCase):
             parser = RefJsonParser(ref_fname)
             valid, errors = parser.validate()
             self.assertTrue(valid) 
-            self.assertEquals(parser.get_version(), ver) 
+            self.assertEqual(parser.get_version(), ver) 
             
         jplace_fname = os.path.join(self.testfile_dir, "test.jplace")
         parser = RefJsonParser(jplace_fname) 

@@ -1,9 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import re
-from string import maketrans
-from ete2 import Tree
+from .ete2 import Tree
 
 class TaxCode:
     UNI_TAX_RANKS = {
@@ -127,7 +126,7 @@ class TaxCode:
     def __init__(self, tax_code_name):
         self.tax_code = TaxCode.TAX_CODE_MAP.get(tax_code_name.lower(), None)
         if not self.tax_code:
-            print "ERROR: Unknown taxonomic code: %s" % tax_code_name
+            print("ERROR: Unknown taxonomic code: %s" % tax_code_name)
             sys.exit()
         
     @staticmethod    
@@ -225,7 +224,7 @@ class Taxonomy:
         self.corr_seq_ids = {}
         self.uncorr_rank_ids = {}
         if tax_map:
-            for sid, ranks in tax_map.iteritems():
+            for sid, ranks in tax_map.items():
                 self.seq_ranks_map[sid] = ranks
                 rank_id = Taxonomy.get_rank_uid(ranks)
                 self.rank_seqs_map[rank_id] = self.rank_seqs_map.get(rank_id, []) + [sid]
@@ -249,10 +248,10 @@ class Taxonomy:
         return len(self.seq_ranks_map)
 
     def items(self):
-        return self.seq_ranks_map.items()
+        return list(self.seq_ranks_map.items())
         
     def iteritems(self):
-        return self.seq_ranks_map.items()
+        return list(self.seq_ranks_map.items())
 
     def get_map(self):
         return self.seq_ranks_map
@@ -315,7 +314,7 @@ class Taxonomy:
         return new_rank_id
         
     def subst_synonyms(self, syn_map):
-        for sid, ranks in self.seq_ranks_map.iteritems():
+        for sid, ranks in self.seq_ranks_map.items():
           old_rank_id = Taxonomy.get_rank_uid(ranks)
           changed = False
           for i in range(0, len(ranks)):
@@ -350,9 +349,9 @@ class Taxonomy:
     def normalize_rank_names(self):
         invalid_chars = "[](),;:'"
         sub_chars = "_" * len(invalid_chars)
-        trantab = maketrans(invalid_chars, sub_chars)
+        trantab = str.maketrans(invalid_chars, sub_chars)
         corr_ranks = {}
-        for sid, ranks in self.seq_ranks_map.iteritems():
+        for sid, ranks in self.seq_ranks_map.items():
             old_rank_id = Taxonomy.get_rank_uid(ranks)
             for i in range(len(ranks)):
                 if ranks[i] in corr_ranks:
@@ -374,9 +373,9 @@ class Taxonomy:
     def normalize_seq_ids(self):
         invalid_chars = "[](),;:' "
         sub_chars = "_" * len(invalid_chars)
-        trantab = maketrans(invalid_chars, sub_chars)
+        trantab = str.maketrans(invalid_chars, sub_chars)
         self.corr_seq_ids = {}
-        for old_sid in self.seq_ranks_map.iterkeys():
+        for old_sid in self.seq_ranks_map.keys():
             new_sid = old_sid.translate(trantab);
             if new_sid != old_sid:
                 self.rename_seq(old_sid, new_sid)
@@ -385,10 +384,10 @@ class Taxonomy:
         return self.corr_seq_ids
 
     def close_taxonomy_gaps(self):
-        for sid, ranks in self.seq_ranks_map.iteritems():
+        for sid, ranks in self.seq_ranks_map.items():
             last_rank = None
             gap_count = 0
-            for i in reversed(range(1, len(ranks))):
+            for i in reversed(list(range(1, len(ranks)))):
                 if ranks[i] != Taxonomy.EMPTY_RANK:
                     last_rank = ranks[i]
                 elif last_rank:
@@ -400,7 +399,7 @@ class Taxonomy:
         dups = []
         old_fixed = {}
         old_ranks = {}
-        for sid, ranks in self.seq_ranks_map.iteritems():
+        for sid, ranks in self.seq_ranks_map.items():
             i = 1
             while i < len(ranks) and ranks[i] != Taxonomy.EMPTY_RANK:
                 parent = ranks[i-1]
@@ -429,7 +428,7 @@ class Taxonomy:
                 i += 1
                         
         if autofix:
-            for sid, orig_name in old_fixed.iteritems():
+            for sid, orig_name in old_fixed.items():
                 dup_rec = (sid, orig_name, sid, orig_name, self.lineage_str(sid))
                 dups.append(dup_rec)
 
@@ -437,7 +436,7 @@ class Taxonomy:
         
     def check_for_disbalance(self, autofix=False):
         errs = []
-        for sid, ranks in self.seq_ranks_map.iteritems():
+        for sid, ranks in self.seq_ranks_map.items():
             if len(ranks) > 7:
                 if autofix:
                     orig_name = self.lineage_str(sid)
@@ -513,10 +512,10 @@ class TaxTreeBuilder:
         added = 0
         seq_ids = []
         # sequences are leafs of the tree, so they always have the lowest taxonomy level (e.g. "species"+1)        
-        for sid, ranks in self.taxonomy.iteritems():
+        for sid, ranks in self.taxonomy.items():
             k += 1
             if self.config.verbose and k % 1000 == 0:
-                print "Processed nodes: ", k, ", added: ", added, ", skipped: ", k - added
+                print("Processed nodes: ", k, ", added: ", added, ", skipped: ", k - added)
 
             # filter by minimum rank level            
             if ranks[min_rank] == Taxonomy.EMPTY_RANK:

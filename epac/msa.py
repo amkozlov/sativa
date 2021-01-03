@@ -1,11 +1,11 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 import sys
 import os
 import json
 import operator
 import time
-from ete2 import Tree, SeqGroup
-from config import EpacConfig
+from .ete2 import Tree, SeqGroup
+from .config import EpacConfig
 from subprocess import call
 
 class hmmer:
@@ -51,7 +51,7 @@ class hmmer:
         #hmmbuild --informat afa refotu.hmm ref_outs_547.fas
         call_str = [self.hmmbuildpath, "--symfrac", "0.0", "--informat", informat, self.refprofile, self.refalign]
         if self.cfg.verbose:
-            print "\n" + ' '.join(call_str) + "\n"
+            print("\n" + ' '.join(call_str) + "\n")
         call(call_str) #, stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT)
         return self.refprofile
 
@@ -59,7 +59,7 @@ class hmmer:
         #hmmalign -o 454.stock refotu.hmm 454input.fna.min100.fasta
         call_str = [self.hmmalignpath,"-o", self.stockname, self.refprofile, self.query]
         if self.cfg.verbose:
-            print "\n" + ' '.join(call_str) + "\n"
+            print("\n" + ' '.join(call_str) + "\n")
         call(call_str) #, stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT)
         return self.stockname
     
@@ -128,7 +128,7 @@ class hmmer:
         fin.close()
         fout = open(self.output, "w")
         foutdiscard = open(self.discardpath, "w")
-        for key in seqs.keys():
+        for key in list(seqs.keys()):
             
             #key is the sequence name which is the id
             numleft = count_non_gap(seqs[key])
@@ -184,7 +184,7 @@ class muscle:
         #muscle -profile -in1 existing_msa.afa -in2 new_seq.fa -out combined.afa
         call_str = [self.musclepath,"-profile", "-in1", aln1, "-in2", aln2, "-out", self.outname]
         if self.cfg.debug:
-            print "\n" + ' '.join(call_str) + "\n"
+            print("\n" + ' '.join(call_str) + "\n")
         call(call_str)
         return self.outname
 

@@ -39,7 +39,7 @@ __VERSION__="ete2-2.2rev1026"
 # 
 # #END_LICENSE#############################################################
 
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 import re
 from sys import stderr
@@ -95,7 +95,7 @@ def read_arraytable(matrix_file, mtype="float", arraytable_object = None):
                 A.colValues[colname] = None
                 A.colNames.append(colname)
             if col_dup_flag:
-                print >>stderr, "Duplicated column names were renamed."
+                print("Duplicated column names were renamed.", file=stderr)
 
         # Skip comments
         elif line[0]=='#':
@@ -105,7 +105,7 @@ def read_arraytable(matrix_file, mtype="float", arraytable_object = None):
         elif A.colNames:
             # Checks shape
             if len(fields)-1 != len(A.colNames):
-                raise ValueError, "Invalid number of columns. Expecting:%d" % len(A.colNames)
+                raise ValueError("Invalid number of columns. Expecting:%d" % len(A.colNames))
 
             # Extracts row name and remove it from fields
             rowname  = fields.pop(0).strip()
@@ -128,10 +128,10 @@ def read_arraytable(matrix_file, mtype="float", arraytable_object = None):
                 values.append(f)
             temp_matrix.append(values)
         else:
-            raise ValueError, "Column names are required."
+            raise ValueError("Column names are required.")
 
     if row_dup_flag:
-        print >>stderr, "Duplicated row names were renamed."
+        print("Duplicated row names were renamed.", file=stderr)
 
     # Convert all read lines into a numpy matrix
     vmatrix = numpy.array(temp_matrix).astype(A.mtype)
@@ -149,9 +149,9 @@ def write_arraytable(A, fname, colnames=None):
     matrix = A.get_several_column_vectors(colnames)
     matrix = matrix.swapaxes(0,1)
     OUT = open(fname,"w")
-    print >>OUT, '\t'.join(["#NAMES"] + colnames)
+    print('\t'.join(["#NAMES"] + colnames), file=OUT)
     counter = 0
     for rname in A.rowNames:
-        print >>OUT, '\t'.join(map(str,[rname]+matrix[counter].tolist()))
+        print('\t'.join(map(str,[rname]+matrix[counter].tolist())), file=OUT)
         counter +=1
     OUT.close()

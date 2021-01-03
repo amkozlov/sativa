@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import os
@@ -7,7 +7,6 @@ import datetime
 import time
 import logging
 import multiprocessing
-from string import maketrans
 
 from epac.ete2 import Tree, SeqGroup
 from epac.argparse import ArgumentParser,RawTextHelpFormatter
@@ -29,7 +28,7 @@ class InputValidator:
         self.merged_ranks = None
         self.corr_seqid = {}
         self.corr_ranks = {}
-        self.gaps_trantab = maketrans("?N", "--")
+        self.gaps_trantab = str.maketrans("?N", "--")
 
     def validate(self):
         # following two checks are obsolete and disabled by default
@@ -52,7 +51,7 @@ class InputValidator:
     def check_seq_ids(self):
         # check that seq IDs in taxonomy and alignment correspond
         self.mis_ids = []
-        for sid in self.taxonomy.seq_ranks_map.iterkeys():
+        for sid in self.taxonomy.seq_ranks_map.keys():
             unprefixed_sid = EpacConfig.strip_ref_prefix(sid)
             if not self.alignment.has_seq(unprefixed_sid):
                 self.mis_ids.append(unprefixed_sid)
@@ -101,7 +100,7 @@ class InputValidator:
         
         self.dupseq_count = 0
         self.dupseq_sets = []
-        for seq_hash, seq_ids in seq_hash_map.iteritems():
+        for seq_hash, seq_ids in seq_hash_map.items():
             check_ids = seq_ids[:]
             while len(check_ids) > 1:
                 # compare actual sequence strings, to account for a possible hash collision
@@ -142,7 +141,7 @@ class InputValidator:
                 if len(duprank_map) > 1 and self.cfg.debug:
                     self.cfg.log.debug("Ranks sharing duplicates: %s\n", str(duprank_map))
                 dup_ranks = []
-                for rank_id, count in duprank_map.iteritems():
+                for rank_id, count in duprank_map.items():
                     if count > self.cfg.taxa_ident_thres * self.taxonomy.get_rank_seq_count(rank_id):
                       dup_ranks += [rank_id]
                 if len(dup_ranks) > 1:
@@ -152,7 +151,7 @@ class InputValidator:
 
         if self.verbose:
             merged_count = 0
-            for merged_rank_id, dup_ranks in self.merged_ranks.iteritems():
+            for merged_rank_id, dup_ranks in self.merged_ranks.items():
                 dup_ranks_str = "\n".join([Taxonomy.rank_uid_to_lineage_str(rank_id) for rank_id in dup_ranks])
                 self.cfg.log.warning("\nWARNING: Following taxa share >%.0f%% indentical sequences und thus considered indistinguishable:\n%s", self.cfg.taxa_ident_thres * 100, dup_ranks_str)
                 merged_rank_str = Taxonomy.rank_uid_to_lineage_str(merged_rank_id)
@@ -172,22 +171,22 @@ class InputValidator:
             errs = self.taxonomy.check_for_disbalance(autofix)
             if len(errs) > 0:
                 if action == "autofix":
-                    print "WARNING: %d sequences with invalid annotation (missing/redundant ranks) found and were fixed as follows:\n" % len(errs)
+                    print("WARNING: %d sequences with invalid annotation (missing/redundant ranks) found and were fixed as follows:\n" % len(errs))
                     for err in errs:
-                        print "Original:   %s\t%s"   % (err[0], err[1])
-                        print "Fixed as:   %s\t%s\n" % (err[0], err[2])
+                        print("Original:   %s\t%s"   % (err[0], err[1]))
+                        print("Fixed as:   %s\t%s\n" % (err[0], err[2]))
                 elif action == "skip":
-                    print "WARNING: Following %d sequences with invalid annotation (missing/redundant ranks) were skipped:\n" % len(errs)
+                    print("WARNING: Following %d sequences with invalid annotation (missing/redundant ranks) were skipped:\n" % len(errs))
                     for err in errs:
                         self.taxonomy.remove_seq(err[0])
-                        print "%s\t%s" % err
+                        print("%s\t%s" % err)
                 else:  # abort
-                    print "ERROR: %d sequences with invalid annotation (missing/redundant ranks) found:\n" % len(errs)
+                    print("ERROR: %d sequences with invalid annotation (missing/redundant ranks) found:\n" % len(errs))
                     for err in errs:
-                        print "%s\t%s" % err
-                    print "\nPlease fix them manually (add/remove ranks) and run the pipeline again (or use -wrong-rank-count autofix option)"
-                    print "NOTE: Only standard 7-level taxonomies are supported at the moment. Although missing trailing ranks (e.g. species) are allowed,"
-                    print "missing intermediate ranks (e.g. family) or sublevels (e.g. suborder) are not!\n"
+                        print("%s\t%s" % err)
+                    print("\nPlease fix them manually (add/remove ranks) and run the pipeline again (or use -wrong-rank-count autofix option)")
+                    print("NOTE: Only standard 7-level taxonomies are supported at the moment. Although missing trailing ranks (e.g. species) are allowed,")
+                    print("missing intermediate ranks (e.g. family) or sublevels (e.g. suborder) are not!\n")
                     self.cfg.exit_user_error()
         
     def check_tax_duplicates(self):
@@ -198,21 +197,21 @@ class InputValidator:
             dups = self.taxonomy.check_for_duplicates(autofix)
             if len(dups) > 0:
                 if action == "autofix":
-                    print "WARNING: %d sequences with duplicate rank names found and were renamed as follows:\n" % len(dups)
+                    print("WARNING: %d sequences with duplicate rank names found and were renamed as follows:\n" % len(dups))
                     for dup in dups:
-                        print "Original:    %s\t%s"   %  (dup[0], dup[1])
-                        print "Duplicate:   %s\t%s"   %  (dup[2], dup[3])
-                        print "Renamed to:  %s\t%s\n" %  (dup[2], dup[4])
+                        print("Original:    %s\t%s"   %  (dup[0], dup[1]))
+                        print("Duplicate:   %s\t%s"   %  (dup[2], dup[3]))
+                        print("Renamed to:  %s\t%s\n" %  (dup[2], dup[4]))
                 elif action == "skip":
-                    print "WARNING: Following %d sequences with duplicate rank names were skipped:\n" % len(dups)
+                    print("WARNING: Following %d sequences with duplicate rank names were skipped:\n" % len(dups))
                     for dup in dups:
                         self.taxonomy.remove_seq(dup[2])
-                        print "%s\t%s\n" % (dup[2], dup[3])
+                        print("%s\t%s\n" % (dup[2], dup[3]))
                 else:  # abort
-                    print "ERROR: %d sequences with duplicate rank names found:\n" % len(dups)
+                    print("ERROR: %d sequences with duplicate rank names found:\n" % len(dups))
                     for dup in dups:
-                        print "%s\t%s\n%s\t%s\n" % dup
-                    print "Please fix (rename) them and run the pipeline again (or use -dup-rank-names autofix option)" 
+                        print("%s\t%s\n%s\t%s\n" % dup)
+                    print("Please fix (rename) them and run the pipeline again (or use -dup-rank-names autofix option)") 
                     self.cfg.exit_user_error()
 
 class RefTreeBuilder:
@@ -314,14 +313,14 @@ class RefTreeBuilder:
     def export_ref_taxonomy(self):
         self.taxonomy_map = {}
         
-        for sid, ranks in self.taxonomy.iteritems():
+        for sid, ranks in self.taxonomy.items():
             if sid in self.reftree_ids:
                 self.taxonomy_map[sid] = ranks
             
         if self.cfg.debug:
             tax_fname = self.cfg.tmp_fname("%NAME%_tax.txt")
             with open(tax_fname, "w") as fout:
-                for sid, ranks in self.taxonomy_map.iteritems():
+                for sid, ranks in self.taxonomy_map.items():
                     ranks_str = self.taxonomy.seq_lineage_str(sid) 
                     fout.write(sid + "\t" + ranks_str + "\n")   
 
@@ -417,6 +416,7 @@ class RefTreeBuilder:
             
     def load_reduced_refalign(self):
         formats = ["fasta", "phylip_relaxed"]
+        self.reduced_refalign_seqs = None
         for fmt in formats:
             try:
                 self.reduced_refalign_seqs = SeqGroup(sequences=self.reduced_refalign_fname, format = fmt)
@@ -459,7 +459,7 @@ class RefTreeBuilder:
             with open(self.reftree_lbl_fname, "w") as outf:
                 outf.write(self.reftree_lbl_str)
             with open(self.brmap_fname, "w") as outf:
-                for bid, br_rec in self.bid_ranks_map.iteritems():
+                for bid, br_rec in self.bid_ranks_map.items():
                     outf.write("%s\t%s\t%d\t%f\n" % (bid, br_rec[0], br_rec[1], br_rec[2]))
 
     def calc_node_heights(self):
@@ -524,7 +524,7 @@ class RefTreeBuilder:
             return set([])
 
     def build_hmm_profile(self, json_builder):
-        print "Building the HMMER profile...\n"
+        print("Building the HMMER profile...\n")
 
         # this stupid workaround is needed because RAxML outputs the reduced
         # alignment in relaxed PHYLIP format, which is not supported by HMMER
@@ -548,9 +548,9 @@ class RefTreeBuilder:
         jw.set_taxcode(self.cfg.taxcode_name)
         
         jw.set_merged_ranks_map(self.input_validator.merged_ranks)
-        corr_ranks_reverse = dict((reversed(item) for item in self.input_validator.corr_ranks.items()))
+        corr_ranks_reverse = dict((reversed(item) for item in list(self.input_validator.corr_ranks.items())))
         jw.set_corr_ranks_map(corr_ranks_reverse)
-        corr_seqid_reverse = dict((reversed(item) for item in self.input_validator.corr_seqid.items()))
+        corr_seqid_reverse = dict((reversed(item) for item in list(self.input_validator.corr_seqid.items())))
         jw.set_corr_seqid_map(corr_seqid_reverse)
 
         mdata = { "ref_tree_size": self.reftree_size, 
@@ -684,16 +684,16 @@ Run name of the previous (terminated) job must be specified via -n option.""")
 def check_args(args):
     #check if taxonomy file exists
     if not os.path.isfile(args.taxonomy_fname):
-        print "ERROR: Taxonomy file not found: %s" % args.taxonomy_fname
+        print("ERROR: Taxonomy file not found: %s" % args.taxonomy_fname)
         sys.exit()
 
     #check if alignment file exists
     if not os.path.isfile(args.align_fname):
-        print "ERROR: Alignment file not found: %s" % args.align_fname
+        print("ERROR: Alignment file not found: %s" % args.align_fname)
         sys.exit()
         
     if args.synonym_fname and not os.path.isfile(args.synonym_fname):
-        print("Synonym list file file does not exists: %s" % args.synonym_fname)
+        print(("Synonym list file file does not exists: %s" % args.synonym_fname))
         sys.exit()
         
     if not args.output_name:
@@ -707,8 +707,8 @@ def check_args(args):
 
     #check if reference json file already exists
     if os.path.isfile(args.ref_fname):
-        print "ERROR: Reference tree file already exists: %s" % args.ref_fname
-        print "Please delete it explicitely if you want to overwrite."
+        print("ERROR: Reference tree file already exists: %s" % args.ref_fname)
+        print("Please delete it explicitely if you want to overwrite.")
         sys.exit()
     
     #check if reference file can be created
@@ -717,12 +717,12 @@ def check_args(args):
         f.close()
         os.remove(args.ref_fname)
     except:
-        print "ERROR: cannot create output file: %s" % args.ref_fname
-        print "Please check if directory %s exists and you have write permissions for it." % os.path.split(os.path.abspath(args.ref_fname))[0]
+        print("ERROR: cannot create output file: %s" % args.ref_fname)
+        print("Please check if directory %s exists and you have write permissions for it." % os.path.split(os.path.abspath(args.ref_fname))[0])
         sys.exit()
         
     if args.rep_num < 1 or args.rep_num > 1000:
-        print "ERROR: Number of RAxML runs must be between 1 and 1000."
+        print("ERROR: Number of RAxML runs must be between 1 and 1000.")
         sys.exit()
 
 def which(program, custom_path=[]):
@@ -747,9 +747,9 @@ def which(program, custom_path=[]):
 def check_dep(config):           
     if not config.no_hmmer:
         if not which("hmmalign", [config.hmmer_home]):
-            print "ERROR: HMMER not found!"
-            print "Please either specify path to HMMER executables in the config file" 
-            print "or call this script with -no-hmmer option to skip building HMMER profile." 
+            print("ERROR: HMMER not found!")
+            print("Please either specify path to HMMER executables in the config file") 
+            print("or call this script with -no-hmmer option to skip building HMMER profile.") 
             config.exit_user_error()
             
 def run_trainer(config):
@@ -766,7 +766,7 @@ if __name__ == "__main__":
     check_args(args)
     config = EpacTrainerConfig(args)
 
-    print ""
+    print("")
     config.print_version("SATIVA-trainer")
 
     start_time = time.time()

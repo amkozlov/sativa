@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import sys
 import unittest
@@ -34,7 +34,7 @@ class ScriptTests(unittest.TestCase):
         try:
             out_str = check_output(call_str, stderr=STDOUT)
         except CalledProcessError as ex:
-            print "\n\nCommand line: %s\n\nOutput:\n%s\n" % (ex.cmd, ex.output)
+            print("\n\nCommand line: %s\n\nOutput:\n%s\n" % (ex.cmd, ex.output))
             self.assertTrue(False, msg="Error running SATIVA script")
             
         mis_fname = os.path.join(self.out_dir, "testsat.mis")
@@ -50,7 +50,7 @@ class ScriptTests(unittest.TestCase):
             out_str = check_output(call_str, stderr=STDOUT)
 #            call(call_str)
         except CalledProcessError as ex:
-            print "\n\nCommand line: %s\n\nOutput:\n%s\n" % (ex.cmd, ex.output)
+            print("\n\nCommand line: %s\n\nOutput:\n%s\n" % (ex.cmd, ex.output))
             self.assertTrue(False, msg="Error running epa_trainer.py script")
 
         refjson_fname = os.path.join(self.out_dir, "testcl.refjson")
@@ -64,7 +64,7 @@ class ScriptTests(unittest.TestCase):
             out_str = check_output(call_str, stderr=STDOUT)
 #            call(call_str)
         except CalledProcessError as ex:
-            print "\n\nCommand line: %s\n\nOutput:\n%s\n" % (ex.cmd, ex.output)
+            print("\n\nCommand line: %s\n\nOutput:\n%s\n" % (ex.cmd, ex.output))
             self.assertTrue(False, msg="Error running epa_classifier.py script")        
 
         assign_fname = os.path.join(self.out_dir, "testcl.assignment.txt")
