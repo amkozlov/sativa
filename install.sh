@@ -40,10 +40,10 @@ case `uname` in
         export DARWIN=0
         GCC_VERSION=`gcc -dumpversion`
         COMPILER_NAME="gcc $GCC_VERSION"
-        if [ "$GCC_VERSION" \> "4.6.0" ] || [ "$GCC_VERSION" = "4.6.0" ] || [ "$GCC_VERSION" = "4.6" ]; then
+        if [ "$GCC_VERSION" \> "4.6.0" ] || [ "$GCC_VERSION" = "4.6.0" ] || [ "$GCC_VERSION" = "4.6" ] || [ "$GCC_VERSION" -ge 5 ]; then
            export USE_AVX=yes
         fi
-        if [ "$GCC_VERSION" \> "4.7.0" ] || [ "$GCC_VERSION" = "4.7.0" ] || [ "$GCC_VERSION" = "4.7" ]; then
+        if [ "$GCC_VERSION" \> "4.7.0" ] || [ "$GCC_VERSION" = "4.7.0" ] || [ "$GCC_VERSION" = "4.7" ] || [ "$GCC_VERSION" -ge 5 ]; then
            export USE_AVX2=yes
         fi
         ;;

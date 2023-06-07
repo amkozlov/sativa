@@ -375,7 +375,7 @@ class Taxonomy:
         sub_chars = "_" * len(invalid_chars)
         trantab = str.maketrans(invalid_chars, sub_chars)
         self.corr_seq_ids = {}
-        for old_sid in self.seq_ranks_map.keys():
+        for old_sid in list(self.seq_ranks_map):
             new_sid = old_sid.translate(trantab);
             if new_sid != old_sid:
                 self.rename_seq(old_sid, new_sid)
