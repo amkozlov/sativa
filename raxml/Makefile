@@ -47,7 +47,7 @@ build:  $(VERSIONS:%=$(RAXML_BIN)%)
 #  which are needed by RAxML)
 
 $(RAXML_BIN)%: unpack.%.stamp
-	MAKEFLAGS= $(MAKE) -C $(<:unpack.%.stamp=builddir.%) -f Makefile.$(@:$(RAXML_BIN)%=%).$(MAKE_SUFFIX) -j 2
+	MAKEFLAGS= $(MAKE) -C $(<:unpack.%.stamp=builddir.%) -f Makefile.$(@:$(RAXML_BIN)%=%).$(MAKE_SUFFIX) -j 2 CC=$(CC)
 	cp $(<:unpack.%.stamp=builddir.%)/raxmlHPC-* $@
 
 unpack.%.stamp: $(TARFILE)
