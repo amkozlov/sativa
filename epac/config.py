@@ -127,7 +127,7 @@ By A.Kozlov and J.Zhang, the Exelixis Lab. Based on RAxML %s by A.Stamatakis.\n"
         self.check_raxml()    
         
         if not self.restart:
-            os.mkdir(self.temp_dir)
+            os.makedirs(self.temp_dir)
 
     def set_defaults(self):
         self.muscle_home = self.epac_home + "/epac/bin" + "/"
