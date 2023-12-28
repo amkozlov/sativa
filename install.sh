@@ -47,6 +47,7 @@ case `uname` in
            export USE_AVX2=yes
         elif [ "$GCC_VERSION" \> "4.7.0" ] || [ "$GCC_VERSION" = "4.7.0" ] || [ "$GCC_VERSION" = "4.7" ] || [ "$GCC_VERSION" -ge 5 ]; then
            echo "    version > 4.7.0"
+           export USE_AVX=yes
            export USE_AVX2=yes
         elif [ "$GCC_VERSION" \> "4.6.0" ] || [ "$GCC_VERSION" = "4.6.0" ] || [ "$GCC_VERSION" = "4.6" ] || [ "$GCC_VERSION" -ge 5 ]; then
            echo "    version > 4.6.0"
